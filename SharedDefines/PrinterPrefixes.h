@@ -1,0 +1,8 @@
+#ifndef _PRINTER_PREFIXES_H_
+
+#define _PRINTER_PREFIXES_H_
+
+#define RASPBERRY_PRINT_PREFIX  "RSP"
+#define NUCLEO_PRINT_PREFIX     "NCL"
+
+#endif
