@@ -1,6 +1,6 @@
 #include "Devices/ADS1248.h"
 #include "Devices/ADS1248Registers.h"
-#include "Devices/ADS1248Types.h"
+#include "SharedDefines/ADS1248Types.h"
 
 #include "Peripherals/EXTI.h"
 #include "Peripherals/SPI3.h"

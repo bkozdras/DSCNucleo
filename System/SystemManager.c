@@ -28,6 +28,7 @@
 #include "Controller/ReferenceThermocoupleTemperatureReader.h"
 
 #include "MasterCommunication/MasterDataManager.h"
+#include "MasterCommunication/MasterDataMemoryManager.h"
 #include "MasterCommunication/MasterDataReceiver.h"
 #include "MasterCommunication/MasterDataTransmitter.h"
 #include "MasterCommunication/MasterUartGateway.h"
@@ -79,6 +80,7 @@ void setup(void)
     ReferenceThermocoupleTemperatureReader_setup();
     
     MasterDataManager_setup();
+    MasterDataMemoryManager_setup();
     MasterDataReceiver_setup();
     MasterDataTransmitter_setup();
     MasterUartGateway_setup();
@@ -98,13 +100,14 @@ void createThreads(void)
     THREAD_CREATE(MasterDataManager, Low, configNORMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataReceiver, Low, configNORMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataTransmitter, Low, configMAXIMUM_STACK_SIZE);
-    THREAD_CREATE(SampleThread, Low, configMINIMAL_STACK_SIZE);
+    THREAD_CREATE(SampleThread, Normal, configMINIMAL_STACK_SIZE);
 }
 
 void SystemManager_thread(void const* arg)
 {
-    Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_Debug);
+    Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_DebugSystem);
     initializeCommunicationWithMaster();
+    //Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_Debug);
     
     Logger_info("%s: THREAD STARTED!", getLoggerPrefix());
     

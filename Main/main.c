@@ -18,7 +18,7 @@ int main(void)
 {
   HAL_Init();
 
-  SystemClock_Config();  
+  SystemClock_Config();
     
   SystemManager_run();
 }

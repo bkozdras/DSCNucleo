@@ -4,6 +4,7 @@
 #include "Utilities/Logger/Logger.h"
 #include "Utilities/Printer/CStringConverter.h"
 #include "Peripherals/UART2.h"
+#include "Peripherals/UART1.h"
 #include "SharedDefines/PrinterPrefixes.h"
 #include "stdio.h"
 #include "stdarg.h"
@@ -80,9 +81,35 @@ bool Logger_isInitialized(void)
     return ( ELoggerLevel_Off != mLoggerLevel );
 }
 
+void Logger_debugSystem(const char* format, ...)
+{
+    if (!(Logger_isInitialized() && ( ELoggerLevel_DebugSystem == mLoggerLevel )))
+    {
+        return;
+    }
+    
+    osMutexWait(mMutexLoggerId, osWaitForever);
+    
+    if (ELoggerType_EvalCOM1 == mLoggerType)
+    {
+        printPrefix();
+        printf("DBS: ");
+    }
+    va_list vaList;
+    va_start( vaList, format );
+    vprintf( format, vaList );
+    va_end( vaList );
+    if (ELoggerType_EvalCOM1 == mLoggerType)
+    {
+        printPostfix();
+    }
+    
+    osMutexRelease(mMutexLoggerId);
+}
+
 void Logger_debug(const char* format, ...)
 {
-    if (!(Logger_isInitialized() && (ELoggerLevel_Debug == mLoggerLevel)))
+    if (!(Logger_isInitialized() && ( (ELoggerLevel_Debug == mLoggerLevel) || (ELoggerLevel_DebugSystem == mLoggerLevel) )))
     {
         return;
     }
@@ -255,7 +282,6 @@ PUTCHAR_PROTOTYPE
   /* e.g. write a character to the EVAL_COM1 and Loop until the end of transmission */
   //while(__HAL_UART_GET_FLAG(&UartHandle, UART_FLAG_TXE) == RESET);
   //HAL_UART_Transmit(&UartHandle, (uint8_t *)&ch, 1, 0xFFFF); 
-
   UART2_sendByte((uint8_t)ch);
     
   return ch;

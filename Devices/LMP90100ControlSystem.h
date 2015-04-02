@@ -5,7 +5,7 @@
 #include "stdbool.h"
 
 #include "Defines/CommonDefines.h"
-#include "Devices/LMP90100Types.h"
+#include "SharedDefines/LMP90100Types.h"
 #include "System/ThreadMacros.h"
 
 THREAD_PROTOTYPE(LMP90100ControlSystemController)

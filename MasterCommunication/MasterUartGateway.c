@@ -37,22 +37,29 @@ void MasterUartGateway_sendMessage(EMessageId messageType, void* message)
     packedMessage.length = MasterDataMemoryManager_getLength(messageType);
     packedMessage.crc = calculateCrcValue(packedMessage.length, packedMessage.data);
     
+    Logger_debugSystem("MasterUartGateway: Message %s prepared and will be sent to Master.", CStringConverter_EMessageId(packedMessage.id));
     MasterDataTransmitter_transmit(&packedMessage);
     
     osMutexRelease(mMutexId);
 }
 
-void MasterUartGateway_verifyReceivedMessage(TMessage message)
+void MasterUartGateway_handleReceivedMessage(TMessage message)
 {
     bool verifyingResult = ( calculateCrcValue(message.length, message.data) == message.crc );
     if (verifyingResult)
     {
+        Logger_debugSystem("MasterUartGateway: Message %s received and passed CRC verification.", CStringConverter_EMessageId(message.id));
+        
         CREATE_EVENT_ISR(DataFromMasterReceivedInd, EThreadId_MasterDataManager);
         CREATE_EVENT_MESSAGE(DataFromMasterReceivedInd);
         
         CopyObject_TMessage(&(eventMessage->message), &message);
         
         SEND_EVENT();
+    }
+    else
+    {
+        Logger_debugSystem("MasterUartGateway: Message %s received but CRC verification failed.", CStringConverter_EMessageId(message.id));
     }
 }
 

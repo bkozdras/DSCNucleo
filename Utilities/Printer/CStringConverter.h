@@ -12,8 +12,8 @@
 #include "Utilities/Logger/TypesLogger.h"
 #include "System/EventManagement/EEventId.h"
 #include "System/TypesKernel.h"
-#include "Devices/LMP90100Types.h"
-#include "Devices/ADS1248Types.h"
+#include "SharedDefines/LMP90100Types.h"
+#include "SharedDefines/ADS1248Types.h"
 
 #include "cmsis_os.h"
 

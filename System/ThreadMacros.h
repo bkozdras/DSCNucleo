@@ -50,7 +50,7 @@
                                     osMutexWait(mMutexId, osWaitForever);                                                                               \
                                     if (event)                                                                                                          \
                                     {                                                                                                                   \
-                                        Logger_debug                                                                                                    \
+                                        Logger_debugSystem                                                                                              \
                                         (                                                                                                               \
                                             "%s: Received event: %s from %s.",                                                                          \
                                             getLoggerPrefix(),                                                                                          \

@@ -6,7 +6,7 @@
 
 #include "Defines/CommonDefines.h"
 #include "System/ThreadMacros.h"
-#include "Devices/ADS1248Types.h"
+#include "SharedDefines/ADS1248Types.h"
 
 THREAD_PROTOTYPE(ADS1248Controller)
 

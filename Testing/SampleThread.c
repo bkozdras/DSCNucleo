@@ -12,6 +12,14 @@
 #include "Devices/LMP90100ControlSystem.h"
 #include "Devices/MCP4716.h"
 
+#include "Peripherals/UART1.h"
+#include "MasterCommunication/MasterUartGateway.h"
+#include "MasterCommunication/MasterDataMemoryManager.h"
+#include "SharedDefines/TMessage.h"
+#include "SharedDefines/EMessageId.h"
+#include "SharedDefines/SFaultIndication.h"
+#include "SharedDefines/MessagesDefines.h"
+
 #include "cmsis_os.h"
 
 static const EThreadId mThreadId = EThreadId_SampleThread;
@@ -23,8 +31,6 @@ static const char* getLoggerPrefix(void);
 void SampleThread_thread(void const* arg)
 {
     ThreadStarter_run(mThreadId);
-    
-    osDelay(2000);
     
     //LMP90100ControlSystem_changeMode(ELMP90100Mode_On_1_6775_SPS); 
     
@@ -41,6 +47,19 @@ void SampleThread_thread(void const* arg)
     
     LMP90100_changeMode(ELMP90100Mode_On_1_6775_SPS);
     */
+    
+    Logger_debug("%s: Sending message.", getLoggerPrefix());
+    TPollingResponse* pol = MasterDataMemoryManager_allocate(EMessageId_PollingResponse);
+    pol->success = true;
+    TFaultInd* faultInd = MasterDataMemoryManager_allocate(EMessageId_FaultInd);
+    faultInd->indication.faultId = EFaultId_System;
+    faultInd->indication.faultySubUnitId = EUnitId_Empty;
+    faultInd->indication.faultyUnitId = EUnitId_Nucleo;
+    faultInd->indication.state = EFaultIndicationState_Start;
+    Logger_debug("%s: Sending message2.", getLoggerPrefix());
+    MasterUartGateway_sendMessage(EMessageId_FaultInd, faultInd);
+    MasterUartGateway_sendMessage(EMessageId_PollingResponse, pol);
+    
     while (mIsThreadNotTerminated)
     {
         TEvent* event = Event_wait(mThreadId, osWaitForever);

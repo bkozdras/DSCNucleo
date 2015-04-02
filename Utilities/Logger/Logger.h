@@ -14,6 +14,7 @@ void Logger_setLevel(ELoggerLevel loggerLevel);
 
 bool Logger_isInitialized(void);
 
+void Logger_debugSystem(const char* format, ...);
 void Logger_debug(const char* format, ...);
 void Logger_info(const char* format, ...);
 void Logger_warning(const char* format, ...);

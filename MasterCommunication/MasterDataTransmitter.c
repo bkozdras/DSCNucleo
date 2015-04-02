@@ -7,6 +7,8 @@
 #include "SharedDefines/TMessage.h"
 #include "System/EventManagement/EEventId.h"
 #include "Utilities/CopyObject.h"
+#include "Utilities/Logger/Logger.h"
+#include "Utilities/Printer/CStringConverter.h"
 #include "cmsis_os.h"
 
 THREAD_DEFINES(MasterDataTransmitter, MasterDataTransmitter)
@@ -24,6 +26,8 @@ static u8 mMessagesBufferHead = 0;
 static u8 mMessagesBufferTail = 0;
 static bool mIsTransmittionOngoing = false;
 static EMessagePart mTransmittingMessagePart = EMessagePart_Header;
+static TByte mMessageHeader [8];
+static TByte mMessageEnd [4];
 
 static void dataTransmittedCallback(void);
 static u8 getNextBufferIndex(u8 index);
@@ -40,33 +44,45 @@ THREAD(MasterDataTransmitter)
 
 EVENT_HANDLER(TransmitData)
 {
-    osMutexWait(mMutexId, osWaitForever);
+    osMutexWait(mMutexBufferOverflowId, osWaitForever);
     
     mMessagesBufferHead = getNextBufferIndex(mMessagesBufferHead);
     
-    osMutexWait(mMutexBufferOverflowId, osWaitForever);
+    Logger_debugSystem("%s: Processing with message from TX buffer: %u.", getLoggerPrefix(), mMessagesBufferHead);
     
     mTransmittingMessagePart = EMessagePart_Header;
     mTransmittingMessage = &(mMessagesBuffer[mMessagesBufferHead]);
     mIsTransmittionOngoing = true;
     
-    TByte header [8];
-    header[0] = 'M';
-    header[1] = 'S';
-    header[2] = 'G';
-    header[3] = mTransmittingMessage->id;
-    header[4] = mTransmittingMessage->transactionId;
-    header[5] = ( mTransmittingMessage->crc & 0xFF );
-    header[6] = ( ( mTransmittingMessage->crc >> 8 ) & 0xFF );
-    header[7] = mTransmittingMessage->length;
+    mMessageHeader[0] = 'M';
+    mMessageHeader[1] = 'S';
+    mMessageHeader[2] = 'G';
+    mMessageHeader[3] = mTransmittingMessage->id;
+    mMessageHeader[4] = mTransmittingMessage->transactionId;
+    mMessageHeader[5] = ( mTransmittingMessage->crc & 0xFF );
+    mMessageHeader[6] = ( ( mTransmittingMessage->crc >> 8 ) & 0xFF );
+    mMessageHeader[7] = mTransmittingMessage->length;
+    /*
+    mMessageHeader[3] = '1';
+    mMessageHeader[4] = '2';
+    mMessageHeader[5] = '3';
+    mMessageHeader[6] = '4';
+    mMessageHeader[7] = '5';
+    mMessageHeader[8] = '\n';*/
     
-    if (!UART1_transmit(header, 8))
+    for (u16 iter = 0; 8 > iter; ++iter)
+    {
+        Logger_debugSystem("%s: Header byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mMessageHeader[iter]);
+    }
+    
+    if (!UART1_transmit(mMessageHeader, 8))
     {
         mIsTransmittionOngoing = false;
+        Logger_debugSystem("%s: Transmitting header failed (Message: %s).", getLoggerPrefix(), CStringConverter_EMessageId(mTransmittingMessage->id));
         assert_param(0);
     }
     
-    osMutexRelease(mMutexId);
+    Logger_debugSystem("%s: Transmitted header (Message: %s).", getLoggerPrefix(), CStringConverter_EMessageId(mTransmittingMessage->id));
 }
 
 EVENT_HANDLER(DataToMasterTransmittedInd)
@@ -77,11 +93,19 @@ EVENT_HANDLER(DataToMasterTransmittedInd)
         {
             mTransmittingMessagePart = EMessagePart_Data;
             
+            for (u16 iter = 0; mTransmittingMessage->length > iter; ++iter)
+            {
+                Logger_debugSystem("%s: Data byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mTransmittingMessage->data[iter]);
+            }
+            
             if (!UART1_transmit(mTransmittingMessage->data, mTransmittingMessage->length))
             {
                 mIsTransmittionOngoing = false;
+                Logger_debugSystem("%s: Transmitting data failed (Message: %s).", getLoggerPrefix(), CStringConverter_EMessageId(mTransmittingMessage->id));
                 assert_param(0);
             }
+            
+            Logger_debugSystem("%s: Transmitted data(Message: %s).", getLoggerPrefix(), CStringConverter_EMessageId(mTransmittingMessage->id));
             
             break;
         }
@@ -90,16 +114,24 @@ EVENT_HANDLER(DataToMasterTransmittedInd)
         {
             mTransmittingMessagePart = EMessagePart_End;
             
-            TByte end [3];
-            end[0] = 'E';
-            end[1] = 'N';
-            end[2] = 'D';
+            mMessageEnd[0] = 'E';
+            mMessageEnd[1] = 'N';
+            mMessageEnd[2] = 'D';
+            mMessageEnd[3] = '\n';
             
-            if (!UART1_transmit(end, 3))
+            for (u16 iter = 0; 4 > iter; ++iter)
+            {
+                Logger_debugSystem("%s: End byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mMessageEnd[iter]);
+            }
+            
+            if (!UART1_transmit(mMessageEnd, 4))
             {
                 mIsTransmittionOngoing = false;
+                Logger_debugSystem("%s: Transmitting end of message failed (Message: %s).", getLoggerPrefix(), CStringConverter_EMessageId(mTransmittingMessage->id));
                 assert_param(0);
             }
+            
+            Logger_debugSystem("%s: Transmitted end of message (Message: %s).", getLoggerPrefix(), CStringConverter_EMessageId(mTransmittingMessage->id));
             
             break;
         }
@@ -111,9 +143,22 @@ EVENT_HANDLER(DataToMasterTransmittedInd)
             if (mMessagesBufferHead == mMessagesBufferTail)
             {
                 mIsTransmittionOngoing = false;
+                Logger_debugSystem
+                (
+                    "%s: Transmitting message done (Message: %s). No new messages in TX buffer.",
+                    getLoggerPrefix(),
+                    CStringConverter_EMessageId(mTransmittingMessage->id)
+                );
             }
             else
             {
+                Logger_debugSystem
+                (
+                    "%s: Transmitting message done (Message: %s). New message found in TX buffer.",
+                    getLoggerPrefix(),
+                    CStringConverter_EMessageId(mTransmittingMessage->id)
+                );
+                
                 CREATE_EVENT_ISR(TransmitData, mThreadId);
                 SEND_EVENT();
             }
@@ -143,10 +188,13 @@ void MasterDataTransmitter_transmit(TMessage* message)
 {
     osMutexWait(mMutexId, osWaitForever);
     
+    Logger_debugSystem("%s: Transmitting message %s.", getLoggerPrefix(), CStringConverter_EMessageId(message->id));
+    
     u8 nextTail = getNextBufferIndex(mMessagesBufferTail);
     while (nextTail == mMessagesBufferHead)
     {
         osMutexRelease(mMutexId);
+        Logger_debugSystem("%s: TX buffer is full. Waiting for free place in buffer...", getLoggerPrefix());
         osMutexWait(mMutexBufferOverflowId, osWaitForever);
         osMutexWait(mMutexId, osWaitForever);
         nextTail = getNextBufferIndex(mMessagesBufferTail);
@@ -154,9 +202,11 @@ void MasterDataTransmitter_transmit(TMessage* message)
     
     CopyObject_TMessage(message, &(mMessagesBuffer[nextTail]));
     mMessagesBufferTail = nextTail;
+    Logger_debugSystem("%s: Copied message to TX buffer. Position: %u.", getLoggerPrefix(), mMessagesBufferTail);
     
     if (!mIsTransmittionOngoing)
     {
+        mIsTransmittionOngoing = true;
         CREATE_EVENT_ISR(TransmitData, mThreadId);
         SEND_EVENT();
     }

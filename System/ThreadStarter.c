@@ -13,7 +13,7 @@ void ThreadStarter_run(EThreadId threadId)
 {
     const char* loggerPrefix = CStringConverter_EThreadId(threadId);
     
-    Logger_debug("%s: Waiting for starting...", loggerPrefix);
+    Logger_debugSystem("%s: Waiting for starting...", loggerPrefix);
     
     TEvent* event = Event_wait(threadId, osWaitForever);
     if (event)
@@ -24,7 +24,7 @@ void ThreadStarter_run(EThreadId threadId)
         
         if (EEventId_Start == eventId)
         {
-            Logger_debug("%s: Received event: %s from thread: %s.", loggerPrefix, CStringConverter_EEventId(eventId), CStringConverter_EThreadId(client));
+            Logger_debugSystem("%s: Received event: %s from thread: %s.", loggerPrefix, CStringConverter_EEventId(eventId), CStringConverter_EThreadId(client));
         }
         else
         {

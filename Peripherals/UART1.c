@@ -4,11 +4,12 @@
 #include "Defines/GPIOMacros.h"
 #include "HardwareSettings/GPIODefines.h"
 #include "FaultManagement/FaultIndication.h"
+#include "Utilities/Logger/Logger.h"
 
 #include "Peripherals/UART1.h"
 
 static bool mIsInitialized = false;
-static UART_HandleTypeDef mUartHandle;
+UART_HandleTypeDef mUart1Handle;
 static DMA_HandleTypeDef mDMAHandleTx;
 static DMA_HandleTypeDef mDMAHandleRx;
 static void (*mTransmittingDoneCallback)(void) = NULL;
@@ -19,8 +20,7 @@ static void mspDeInit(UART_HandleTypeDef *uartHandle);
 
 void UART1_initializeDefault(void)
 {
-    //UART1_initialize(115200, UART_MODE_TX_RX);
-    UART1_initialize(256000, UART_MODE_TX_RX);
+    UART1_initialize(1000000, UART_MODE_TX_RX);
 }
 
 void UART1_initialize(TUartBaudRate baudRate, TUartMode mode)
@@ -29,23 +29,25 @@ void UART1_initialize(TUartBaudRate baudRate, TUartMode mode)
     {
         MSP_setHAL_UART_MspInitCallback(mspInit);
         
-        mUartHandle.Instance          = USART1;
-        mUartHandle.Init.BaudRate     = baudRate;
-        mUartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
-        mUartHandle.Init.StopBits     = UART_STOPBITS_1;
-        mUartHandle.Init.Parity       = UART_PARITY_NONE;
-        mUartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
-        mUartHandle.Init.Mode         = mode;
-        mUartHandle.Init.OverSampling = UART_OVERSAMPLING_16;
+        mUart1Handle.Instance          = USART1;
+        mUart1Handle.Init.BaudRate     = baudRate;
+        mUart1Handle.Init.WordLength   = UART_WORDLENGTH_8B;
+        mUart1Handle.Init.StopBits     = UART_STOPBITS_1;
+        mUart1Handle.Init.Parity       = UART_PARITY_NONE;
+        mUart1Handle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
+        mUart1Handle.Init.Mode         = mode;
+        mUart1Handle.Init.OverSampling = UART_OVERSAMPLING_16;
         
-        if(HAL_OK != HAL_UART_Init(&mUartHandle))
+        if(HAL_OK != HAL_UART_Init(&mUart1Handle))
         {
+            Logger_error("UART1: Initialization failed!");
             /* Initialization Error */
             FaultIndication_start(EFaultId_Uart, EUnitId_Nucleo, EUnitId_Empty);
             mIsInitialized = false;
         }
         else
         {
+            Logger_debug("UART1: Initialized!");
             mIsInitialized = true;
         }
     }
@@ -55,7 +57,7 @@ void UART1_uninitialize(void)
 {
     MSP_setHAL_UART_MspDeInitCallback(mspDeInit);
     
-    if(HAL_OK != HAL_UART_DeInit(&mUartHandle))
+    if(HAL_OK != HAL_UART_DeInit(&mUart1Handle))
     {
         FaultIndication_start(EFaultId_Uart, EUnitId_Nucleo, EUnitId_Empty);
         assert_param(false);
@@ -70,11 +72,17 @@ bool UART1_transmit(TByte* data, const u16 dataLength)
 {
     if (mIsInitialized)
     {
-        if (HAL_OK != HAL_UART_Transmit_DMA(&mUartHandle, data, dataLength))
+        if (HAL_OK != HAL_UART_Transmit_DMA(&mUart1Handle, data, dataLength))
         {
             return false;
         }
-
+        
+        Logger_debugSystem("UART1: Transmitted %u bytes:", dataLength);
+        for (u16 iter = 0; dataLength > iter; ++iter)
+        {
+            Logger_debugSystem("UART1: Byte[%u]: 0x%02X.", iter, data[iter]);
+        }
+        
         return true;
     }
     
@@ -85,7 +93,7 @@ bool UART1_receive(TByte* data, const u16 dataLength)
 {
     if (mIsInitialized)
     {
-        if (HAL_OK != HAL_UART_Receive_DMA(&mUartHandle, data, dataLength))
+        if (HAL_OK != HAL_UART_Receive_DMA(&mUart1Handle, data, dataLength))
         {
             return false;
         }
@@ -133,6 +141,9 @@ void mspInit(UART_HandleTypeDef* uartHandle)
   /* Enable USARTx clock */
   __HAL_RCC_USART1_CLK_ENABLE();
   
+  /* Enable DMA2 clock*/
+  __HAL_RCC_DMA2_CLK_ENABLE();
+    
   /*##-2- Configure peripheral GPIO ##########################################*/  
   /* UART TX GPIO pin configuration  */
   GPIO_InitStruct.Pin       = GET_GPIO_PIN(UART1_TX_PIN);
@@ -151,8 +162,8 @@ void mspInit(UART_HandleTypeDef* uartHandle)
   
   // DMA Configuration
   
-    /*##-3- Configure the DMA streams ##########################################*/
-  /* Configure the DMA handler for Transmission process */
+   //##-3- Configure the DMA streams ##########################################
+  // Configure the DMA handler for Transmission process 
   mDMAHandleTx.Instance                 = DMA2_Stream7;
   
   mDMAHandleTx.Init.Channel             = DMA_CHANNEL_4;
@@ -162,18 +173,18 @@ void mspInit(UART_HandleTypeDef* uartHandle)
   mDMAHandleTx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
   mDMAHandleTx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
   mDMAHandleTx.Init.Mode                = DMA_NORMAL;
-  mDMAHandleTx.Init.Priority            = DMA_PRIORITY_LOW;
+  mDMAHandleTx.Init.Priority            = DMA_PRIORITY_HIGH;
   mDMAHandleTx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
   mDMAHandleTx.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;
-  mDMAHandleTx.Init.MemBurst            = DMA_MBURST_INC4;
-  mDMAHandleTx.Init.PeriphBurst         = DMA_PBURST_INC4;
+  mDMAHandleTx.Init.MemBurst            = DMA_MBURST_SINGLE;
+  mDMAHandleTx.Init.PeriphBurst         = DMA_PBURST_SINGLE;
   
   HAL_DMA_Init(&mDMAHandleTx);   
   
-  /* Associate the initialized DMA handle to the the UART handle */
+  // Associate the initialized DMA handle to the the UART handle
   __HAL_LINKDMA(uartHandle, hdmatx, mDMAHandleTx);
     
-  /* Configure the DMA handler for Transmission process */
+  // Configure the DMA handler for Transmission process 
   mDMAHandleRx.Instance                 = DMA2_Stream5;
   
   mDMAHandleRx.Init.Channel             = DMA_CHANNEL_4;
@@ -184,27 +195,27 @@ void mspInit(UART_HandleTypeDef* uartHandle)
   mDMAHandleRx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
   mDMAHandleRx.Init.Mode                = DMA_NORMAL;
   mDMAHandleRx.Init.Priority            = DMA_PRIORITY_HIGH;
-  mDMAHandleRx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;         
+  mDMAHandleRx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
   mDMAHandleRx.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;
   mDMAHandleRx.Init.MemBurst            = DMA_MBURST_INC4;
   mDMAHandleRx.Init.PeriphBurst         = DMA_PBURST_INC4; 
 
   HAL_DMA_Init(&mDMAHandleRx);
     
-  /* Associate the initialized DMA handle to the the UART handle */
+  // Associate the initialized DMA handle to the the UART handle 
   __HAL_LINKDMA(uartHandle, hdmarx, mDMAHandleRx);
     
-  /*##-4- Configure the NVIC for DMA #########################################*/
-  /* NVIC configuration for DMA transfer complete interrupt (USARTx_TX) */
-  HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 0, 1);
+  //##-4- Configure the NVIC for DMA #########################################
+  // NVIC configuration for DMA transfer complete interrupt (USARTx_TX)
+  HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 7, 1);
   HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
     
-  /* NVIC configuration for DMA transfer complete interrupt (USARTx_RX) */
-  HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 0, 0);   
+  // NVIC configuration for DMA transfer complete interrupt (USARTx_RX)
+  HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 7, 0);   
   HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
   
-  /* NVIC configuration for USART TC interrupt */
-  HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+  // NVIC configuration for USART TC interrupt
+  HAL_NVIC_SetPriority(USART1_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(USART1_IRQn);
 }
 
@@ -231,18 +242,31 @@ void mspDeInit(UART_HandleTypeDef* uartHandle)
   HAL_NVIC_DisableIRQ(DMA2_Stream5_IRQn);
 }
 
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef* uartHandle)
 {
-    if (mTransmittingDoneCallback)
+    __HAL_UART_FLUSH_DRREGISTER(uartHandle);
+    if (&mUart1Handle == uartHandle)
     {
-        (*mTransmittingDoneCallback)();
+        if (mTransmittingDoneCallback)
+        {
+            (*mTransmittingDoneCallback)();
+        }
     }
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef* uartHandle)
 {
-    if (mReceivingDoneCallback)
+    if (&mUart1Handle == uartHandle)
     {
-        (*mReceivingDoneCallback)();
+        if (mReceivingDoneCallback)
+        {
+            (*mReceivingDoneCallback)();
+        }
     }
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    Logger_debugSystem("UART1: Transmission failure. Error callback occured.");
+    FaultIndication_start(EFaultId_Uart, EUnitId_Nucleo, EUnitId_Empty);
 }

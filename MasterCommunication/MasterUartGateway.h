@@ -10,6 +10,6 @@ void MasterUartGateway_setup(void);
 void MasterUartGateway_initialize(void);
 
 void MasterUartGateway_sendMessage(EMessageId messageType, void* message);
-void MasterUartGateway_verifyReceivedMessage(TMessage message);
+void MasterUartGateway_handleReceivedMessage(TMessage message);
 
 #endif

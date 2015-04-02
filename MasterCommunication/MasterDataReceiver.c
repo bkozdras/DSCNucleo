@@ -18,7 +18,7 @@ EVENT_HANDLER_PROTOTYPE(StartReceivingData)
 #define MESSAGES_BUFFER_SIZE 15
 
 static TByte mMessageHeader [8];
-static TByte mMessageEnd [3];
+static TByte mMessageEnd [4];
 static TMessage mActiveMessage;
 static EMessagePart mReceivingMessagePart = EMessagePart_End;
 static bool mIsMessageCorrupted = true;
@@ -89,7 +89,7 @@ EVENT_HANDLER(DataFromMasterReceivedInd)
             }
             
             {
-                if (! ( ('E' == mMessageEnd[0]) && ('N' == mMessageEnd[1]) && ('D' == mMessageEnd[2]) ) )
+                if (! ( ('E' == mMessageEnd[0]) && ('N' == mMessageEnd[1]) && ('D' == mMessageEnd[2]) && ('\n' == mMessageEnd[3]) ) )
                 {
                     mIsMessageCorrupted = true;
                 }
@@ -97,7 +97,7 @@ EVENT_HANDLER(DataFromMasterReceivedInd)
             
             if (!mIsMessageCorrupted)
             {
-                MasterUartGateway_verifyReceivedMessage(mActiveMessage);
+                MasterUartGateway_handleReceivedMessage(mActiveMessage);
             }
             
             mIsMessageCorrupted = false;
@@ -109,7 +109,7 @@ EVENT_HANDLER(DataFromMasterReceivedInd)
 
 EVENT_HANDLER(StartReceivingData)
 {
-    Logger_debug("%s: Starting receiving data from Master...", getLoggerPrefix());
+    Logger_debugSystem("%s: Starting receiving data from Master...", getLoggerPrefix());
     
     mIsMessageCorrupted = false;
     mReceivingMessagePart = EMessagePart_Header;
@@ -119,7 +119,7 @@ EVENT_HANDLER(StartReceivingData)
         assert_param(0);
     }
     
-    Logger_debug("%s: Receiving data from Master started.", getLoggerPrefix());
+    Logger_debugSystem("%s: Receiving data from Master started.", getLoggerPrefix());
 }
 
 void MasterDataReceiver_setup(void)

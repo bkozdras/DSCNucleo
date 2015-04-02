@@ -58,7 +58,7 @@ void KernelManager_startThread(EThreadId client, EThreadId threadId)
 {   
     bool isSuccess = false;
     
-    Logger_debug("%s: Starting thread: %s (Client: %s).", getLoggerPrefix(), CStringConverter_EThreadId(threadId), CStringConverter_EThreadId(client));
+    Logger_debugSystem("%s: Starting thread: %s (Client: %s).", getLoggerPrefix(), CStringConverter_EThreadId(threadId), CStringConverter_EThreadId(client));
     osMutexWait(mMutexDataId, osWaitForever);
     SThreadData* threadData = getThreadData(threadId);
     bool isAllowed = (threadData && !threadData->isRunning);
@@ -100,7 +100,7 @@ void KernelManager_stopThread(EThreadId client, EThreadId threadId)
 {
     bool isSuccess = false;
     
-    Logger_debug("%s: Stopping thread: %s (Client: %s).", getLoggerPrefix(), CStringConverter_EThreadId(threadId), CStringConverter_EThreadId(client));
+    Logger_debugSystem("%s: Stopping thread: %s (Client: %s).", getLoggerPrefix(), CStringConverter_EThreadId(threadId), CStringConverter_EThreadId(client));
     osMutexWait(mMutexDataId, osWaitForever);
     SThreadData* threadData = getThreadData(threadId);
     bool isAllowed = (threadData && !threadData->isRunning);

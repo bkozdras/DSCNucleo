@@ -5,6 +5,7 @@
 typedef enum _ELoggerLevel
 {
     ELoggerLevel_Off,
+    ELoggerLevel_DebugSystem,
     ELoggerLevel_Debug,
     ELoggerLevel_Info
 } ELoggerLevel;

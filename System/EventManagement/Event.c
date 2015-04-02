@@ -364,3 +364,50 @@ void freeEvent(EThreadId threadId, TEvent* event)
     FREE_ALLOCATED_EVENT_HANDLER(MasterDataReceiver)
     FREE_ALLOCATED_EVENT_HANDLER(MasterDataManager)
 }
+
+#undef waitForEvent
+#undef ThreadId
+#undef IsThread
+#undef EventQueueDef
+#undef EventQueueSizedDef
+#undef EventQueue
+#undef EventQueueCreate
+#undef EventQueueSend
+#undef EventQueueReceive
+#undef EventQueueId
+#undef HeapDef
+#undef HeapSizedDef
+#undef Heap
+#undef HeapCreate
+#undef HeapAlloc
+#undef HeapCalloc
+#undef HeapFree
+#undef HeapId
+#undef GetEventQueueName
+#undef GetEventQueueId
+#undef DefineEventQueue
+#undef DefineEventQueueSized
+#undef DefineEventQueueId
+#undef GetHeapName
+#undef GetHeapId
+#undef DefineHeap
+#undef DefineHeapSized
+#undef DefineHeapId
+#undef GetEventMessageHeapName
+#undef GetEventMessageHeapId
+#undef DefineEventMessageHeap
+#undef DefineEventMessageHeapSized
+#undef DefineEventMessageHeapId
+#undef DEFINE_EVENT_QUEUE
+#undef DEFINE_EVENT_QUEUE_SIZED
+#undef CREATE_EVENT_QUEUE
+#undef DEFINE_EVENT_HEAP
+#undef CREATE_EVENT_HEAP
+#undef EVENT_GET_ID_HANDLER
+#undef SEND_EVENT_TO_THREAD_HANDLER
+#undef ALLOCATE_MALLOC_HANDLER
+#undef ALLOCATE_CALLOC_HANDLER
+#undef ALLOCATE_MALLOC_EVENT_MESSAGE_HANDLER
+#undef ALLOCATE_CALLOC_EVENT_MESSAGE_HANDLER
+#undef FREE_ALLOCATED_EVENT_MESSAGE_HANDLER
+#undef FREE_ALLOCATED_EVENT_HANDLER

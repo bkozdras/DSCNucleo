@@ -5,7 +5,7 @@
 typedef enum _ETimerId
 {
     ETimerId_HeaterTemperatureController    = 0,
-    ETimerId_DevicesDiagnostic              = 1,
+    ETimerId_SegmentStopWatch               = 1,
     ETimerId_Unknown                        = 99
 } ETimerId;
 

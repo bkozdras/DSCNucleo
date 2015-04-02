@@ -2,7 +2,6 @@
 
 #define _T_EVENT_MESSAGE_H_
 
-#include "Devices/ADS1248Types.h"
 #include "SharedDefines/EUnitId.h"
 #include "SharedDefines/TMessage.h"
 

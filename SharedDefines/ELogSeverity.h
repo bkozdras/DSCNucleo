@@ -4,7 +4,7 @@
 
 typedef enum _ELogSeverity
 {
-    ELogSeverity_DebugSystemLevel   = 0,
+    ELogSeverity_DebugSystem        = 0,
     ELogSeverity_Debug              = 1,
     ELogSeverity_Info               = 2,
     ELogSeverity_Warning            = 3,

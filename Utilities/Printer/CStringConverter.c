@@ -14,6 +14,126 @@ const char* CStringConverter_EMessageId(EMessageId messageId)
         case EMessageId_PollingResponse :
             return "PollingResponse";
         
+        case EMessageId_CallibreADS1248Request :
+            return "CallibreADS1248Request";
+        
+        case EMessageId_CallibreADS1248Response :
+            return "CallibreADS1248Response";
+        
+        case EMessageId_FaultInd :
+            return "FaultInd";
+        
+        case EMessageId_HeaterTemperatureInd :
+            return "HeaterTemperatureInd";
+        
+        case EMessageId_LogInd :
+            return "LogInd";
+        
+        case EMessageId_ReferenceThermocoupleTemperatureInd :
+            return "ReferenceThermocoupleTemperatureInd";
+        
+        case EMessageId_RegisterNewSegmentToProgramRequest :
+            return "RegisterNewSegmentToProgramRequest";
+        
+        case EMessageId_RegisterNewSegmentToProgramResponse :
+            return "RegisterNewSegmentToProgramResponse";
+        
+        case EMessageId_ResetUnitRequest :
+            return "ResetUnitRequest";
+        
+        case EMessageId_ResetUnitResponse :
+            return "ResetUnitResponse";
+        
+        case EMessageId_SampleCarrierDataInd :
+            return "SampleCarrierDataInd";
+        
+        case EMessageId_SetChannelGainADS1248Request :
+            return "SetChannelGainADS1248Request";
+        
+        case EMessageId_SetChannelGainADS1248Response :
+            return "SetChannelGainADS1248Response";
+        
+        case EMessageId_SetChannelSamplingSpeedADS1248Request :
+            return "SetChannelSamplingSpeedADS1248Response";
+        
+        case EMessageId_SetChannelSamplingSpeedADS1248Response :
+            return "SetChannelSamplingSpeedADS1248Response";
+        
+        case EMessageId_SetControllerTunesRequest :
+            return "SetControllerTunesRequest";
+        
+        case EMessageId_SetControllerTunesResponse :
+            return "SetControllerTunesResponse";
+        
+        case EMessageId_SetControlSystemTypeRequest :
+            return "SetControlSystemTypeRequest";
+        
+        case EMessageId_SetControlSystemTypeResponse :
+            return "SetControlSystemTypeResponse";
+        
+        case EMessageId_SetHeaterPowerRequest :
+            return "SetHeaterPowerRequest";
+        
+        case EMessageId_SetHeaterPowerResponse :
+            return "SetHeaterPowerResponse";
+        
+        case EMessageId_SetNewDeviceModeLMP90100ControlSystemRequest :
+            return "SetNewDeviceModeLMP90100ControlSystemRequest";
+        
+        case EMessageId_SetNewDeviceModeLMP90100ControlSystemResponse :
+            return "SetNewDeviceModeLMP90100ControlSystemResponse";
+        
+        case EMessageId_SetNewDeviceModeLMP90100SignalsMeasurementRequest :
+            return "SetNewDeviceModeLMP90100SignalsMeasurementRequest";
+        
+        case EMessageId_SetNewDeviceModeLMP90100SignalsMeasurementResponse :
+            return "SetNewDeviceModeLMP90100SignalsMeasurementResponse";
+        
+        case EMessageId_SetProcessModelParametersRequest :
+            return "SetProcessModelParametersRequest";
+        
+        case EMessageId_SetProcessModelParametersResponse :
+            return  "SetProrcessModelParametersResponse";
+        
+        case EMessageId_UnexpectedMasterMessageInd :
+            return "UnexpectedMasterMessageInd";
+        
+        case EMessageId_UnitReadyInd :
+            return "UnitReadyInd";
+        
+        case EMessageId_SegmentStartedInd :
+            return "SegmentStartedInd";
+        
+        case EMessageId_SetRTDPolynomialCoefficientsRequest :
+            return "SetRTDPolynomialCoefficientsRequest";
+        
+        case EMessageId_SetRTDPolynomialCoefficientsResponse :
+            return "SetRTDPolynomialCoefficientsResponse";
+        
+        case EMessageId_StartReferenceThermocoupleTemperatureStabilizationRequest :
+            return "StartReferenceThermocoupleTemperatureStabilizationRequest";
+        
+        case EMessageId_StartReferenceThermocoupleTemperatureStabilizationResponse :
+            return "StartReferenceThermocoupleTemperatureStabilizationResponse";
+        
+        case EMessageId_StartRegisteringDataRequest :
+            return "StartRegisteringDataRequest";
+        
+        case EMessageId_StartRegisteringDataResponse :
+            return "StartRegisteringDataResponse";
+        
+        case EMessageId_StopReferenceThermocoupleTemperatureStabilizationRequest :
+            return "StopReferenceThermocoupleTemperatureStabilizationRequest";
+        
+        case EMessageId_StopReferenceThermocoupleTemperatureStabilizationResponse :
+            return "StopReferenceThermocoupleTemperatureStabilizationResponse";
+        
+        case EMessageId_StopRegisteringDataRequest :
+            return "StopRegisteringDataRequest";
+        
+        case EMessageId_StopRegisteringDataResponse :
+            return "StopRegisteringDataResponse";
+        
         case EMessageId_Unknown :
             return "Unknown";
     }
@@ -180,6 +300,9 @@ const char* CStringConverter_ELoggerLevel(ELoggerLevel loggerLevel)
     {
         case ELoggerLevel_Off :
             return "Off";
+        
+        case ELoggerLevel_DebugSystem :
+            return "DebugSystem";
         
         case ELoggerLevel_Debug :
             return "Debug";
