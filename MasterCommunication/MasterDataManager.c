@@ -22,6 +22,7 @@
 #include "Controller/SampleCarrierDataManager.h"
 #include "Controller/ReferenceThermocoupleTemperatureReader.h"
 
+#include "Utilities/Printer/CStringConverter.h"
 #include "Utilities/Logger/Logger.h"
 #include "Utilities/CopyObject.h"
 
@@ -53,8 +54,8 @@ static void handleSetControlSystemTypeRequest(TSetControlSystemTypeRequest* requ
 static void handleSetControllerTunesRequest(TSetControllerTunesRequest* request);
 static void handleSetProcessModelParametersRequest(TSetProcessModelParametersRequest* request);
 static void handleRegisterNewSegmentToProgramRequest(TRegisterNewSegmentToProgramRequest* request);
-static void handleStartReferenceThermocoupleTemperatureStabilizationRequest(TStartReferenceThermocoupleTemperatureStabilizationRequest* request);
-static void handleStopReferenceThermocoupleTemperatureStabilizationRequest(TStopReferenceThermocoupleTemperatureStabilizationRequest* request);
+static void handleStartReferenceTemperatureStabilizationRequest(TStartReferenceTemperatureStabilizationRequest* request);
+static void handleStopReferenceTemperatureStabilizationRequest(TStopReferenceTemperatureStabilizationRequest* request);
 static void handleSetRTDPolynomialCoefficientsRequest(TSetRTDPolynomialCoefficientsRequest* request);
 
 static void handleUnexpectedMessage(u8 messageId);
@@ -118,8 +119,8 @@ void handleMasterData(TMessage* message)
         HANDLE_REQUEST(SetControllerTunesRequest)
         HANDLE_REQUEST(SetProcessModelParametersRequest)
         HANDLE_REQUEST(RegisterNewSegmentToProgramRequest)
-        HANDLE_REQUEST(StartReferenceThermocoupleTemperatureStabilizationRequest)
-        HANDLE_REQUEST(StopReferenceThermocoupleTemperatureStabilizationRequest)
+        HANDLE_REQUEST(StartReferenceTemperatureStabilizationRequest)
+        HANDLE_REQUEST(StopReferenceTemperatureStabilizationRequest)
         HANDLE_REQUEST(SetRTDPolynomialCoefficientsRequest)
         
         default :
@@ -228,20 +229,20 @@ void handleRegisterNewSegmentToProgramRequest(TRegisterNewSegmentToProgramReques
     MasterUartGateway_sendMessage(EMessageId_RegisterNewSegmentToProgramResponse, response);
 }
 
-void handleStartReferenceThermocoupleTemperatureStabilizationRequest(TStartReferenceThermocoupleTemperatureStabilizationRequest* request)
+void handleStartReferenceTemperatureStabilizationRequest(TStartReferenceTemperatureStabilizationRequest* request)
 {
-    TStartReferenceThermocoupleTemperatureStabilizationResponse* response =
-        MasterDataMemoryManager_allocate(EMessageId_StartReferenceThermocoupleTemperatureStabilizationResponse);
+    TStartReferenceTemperatureStabilizationResponse* response =
+        MasterDataMemoryManager_allocate(EMessageId_StartReferenceTemperatureStabilizationResponse);
     
-    MasterUartGateway_sendMessage(EMessageId_StartReferenceThermocoupleTemperatureStabilizationResponse, response);
+    MasterUartGateway_sendMessage(EMessageId_StartReferenceTemperatureStabilizationResponse, response);
 }
 
-void handleStopReferenceThermocoupleTemperatureStabilizationRequest(TStopReferenceThermocoupleTemperatureStabilizationRequest* request)
+void handleStopReferenceTemperatureStabilizationRequest(TStopReferenceTemperatureStabilizationRequest* request)
 {
-    TStopReferenceThermocoupleTemperatureStabilizationResponse* response =
-        MasterDataMemoryManager_allocate(EMessageId_StopReferenceThermocoupleTemperatureStabilizationResponse);
+    TStopReferenceTemperatureStabilizationResponse* response =
+        MasterDataMemoryManager_allocate(EMessageId_StopReferenceTemperatureStabilizationResponse);
     
-    MasterUartGateway_sendMessage(EMessageId_StopReferenceThermocoupleTemperatureStabilizationResponse, response);
+    MasterUartGateway_sendMessage(EMessageId_StopReferenceTemperatureStabilizationResponse, response);
 }
 
 void handleSetRTDPolynomialCoefficientsRequest(TSetRTDPolynomialCoefficientsRequest* request)

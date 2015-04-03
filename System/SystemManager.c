@@ -15,6 +15,7 @@
 #include "Peripherals/I2C1.h"
 #include "Peripherals/SPI2.h"
 #include "Peripherals/SPI3.h"
+#include "Peripherals/TIM3.h"
 #include "Peripherals/UART1.h"
 #include "Peripherals/UART2.h"
 
@@ -69,6 +70,7 @@ void setup(void)
     Logger_setup();
     SPI2_setup();
     SPI3_setup();
+    TIM3_setup();
     
     ADS1248_setup();
     LMP90100ControlSystem_setup();

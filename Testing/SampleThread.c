@@ -20,6 +20,8 @@
 #include "SharedDefines/SFaultIndication.h"
 #include "SharedDefines/MessagesDefines.h"
 
+#include "Peripherals/TIM3.h"
+#include "System/ThreadMacros.h"
 #include "cmsis_os.h"
 
 static const EThreadId mThreadId = EThreadId_SampleThread;
@@ -27,6 +29,8 @@ static bool mIsThreadNotTerminated = true;
 
 //static void testMCP4716(void);
 static const char* getLoggerPrefix(void);
+
+static void timer(void);
 
 void SampleThread_thread(void const* arg)
 {
@@ -48,21 +52,19 @@ void SampleThread_thread(void const* arg)
     LMP90100_changeMode(ELMP90100Mode_On_1_6775_SPS);
     */
     
-    Logger_debug("%s: Sending message.", getLoggerPrefix());
-    TPollingResponse* pol = MasterDataMemoryManager_allocate(EMessageId_PollingResponse);
-    pol->success = true;
-    TFaultInd* faultInd = MasterDataMemoryManager_allocate(EMessageId_FaultInd);
-    faultInd->indication.faultId = EFaultId_System;
-    faultInd->indication.faultySubUnitId = EUnitId_Empty;
-    faultInd->indication.faultyUnitId = EUnitId_Nucleo;
-    faultInd->indication.state = EFaultIndicationState_Start;
-    Logger_debug("%s: Sending message2.", getLoggerPrefix());
-    MasterUartGateway_sendMessage(EMessageId_FaultInd, faultInd);
-    MasterUartGateway_sendMessage(EMessageId_PollingResponse, pol);
+    osDelay(2000);
+    
+    TIM3_registerPeriodElapsedCallback(timer);
+    TIM3_setPeriod(1000);
+    TIM3_start();
     
     while (mIsThreadNotTerminated)
     {
         TEvent* event = Event_wait(mThreadId, osWaitForever);
+        if (event->id == EEventId_DataToMasterTransmittedInd)
+        {
+            Logger_info("%s: TIMER.", getLoggerPrefix());
+        }
     }
     
     Logger_warning("%s: Thread TERMINATED!", getLoggerPrefix());
@@ -123,6 +125,12 @@ void testMCP4716(void)
     
     Logger_debug("%s: Testing MCP4716: DONE!", getLoggerPrefix());
 }*/
+
+void timer(void)
+{
+    CREATE_EVENT_ISR(DataToMasterTransmittedInd, mThreadId);
+    SEND_EVENT();
+}
 
 const char* getLoggerPrefix(void)
 {

@@ -203,25 +203,25 @@ typedef struct _TSegmentStartedInd
     u16 segmentNumber;
 } TSegmentStartedInd;
 
-typedef struct _TStartReferenceThermocoupleTemperatureStabilizationRequest
+typedef struct _TStartReferenceTemperatureStabilizationRequest
 {
     bool dummy;
-} TStartReferenceThermocoupleTemperatureStabilizationRequest;
+} TStartReferenceTemperatureStabilizationRequest;
 
-typedef struct _TStartReferenceThermocoupleTemperatureStabilizationResponse
+typedef struct _TStartReferenceTemperatureStabilizationResponse
 {
     bool success;
-} TStartReferenceThermocoupleTemperatureStabilizationResponse;
+} TStartReferenceTemperatureStabilizationResponse;
 
-typedef struct _TStopReferenceThermocoupleTemperatureStabilizationRequest
+typedef struct _TStopReferenceTemperatureStabilizationRequest
 {
     bool dummy;
-} TStopReferenceThermocoupleTemperatureStabilizationRequest;
+} TStopReferenceTemperatureStabilizationRequest;
 
-typedef struct _TStopReferenceThermocoupleTemperatureStabilizationResponse
+typedef struct _TStopReferenceTemperatureStabilizationResponse
 {
     bool success;
-} TStopReferenceThermocoupleTemperatureStabilizationResponse;
+} TStopReferenceTemperatureStabilizationResponse;
 
 typedef struct _TSetRTDPolynomialCoefficientsRequest
 {

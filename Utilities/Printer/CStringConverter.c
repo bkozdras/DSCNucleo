@@ -110,11 +110,11 @@ const char* CStringConverter_EMessageId(EMessageId messageId)
         case EMessageId_SetRTDPolynomialCoefficientsResponse :
             return "SetRTDPolynomialCoefficientsResponse";
         
-        case EMessageId_StartReferenceThermocoupleTemperatureStabilizationRequest :
-            return "StartReferenceThermocoupleTemperatureStabilizationRequest";
+        case EMessageId_StartReferenceTemperatureStabilizationRequest :
+            return "StartReferenceTemperatureStabilizationRequest";
         
-        case EMessageId_StartReferenceThermocoupleTemperatureStabilizationResponse :
-            return "StartReferenceThermocoupleTemperatureStabilizationResponse";
+        case EMessageId_StartReferenceTemperatureStabilizationResponse :
+            return "StartReferenceTemperatureStabilizationResponse";
         
         case EMessageId_StartRegisteringDataRequest :
             return "StartRegisteringDataRequest";
@@ -122,11 +122,11 @@ const char* CStringConverter_EMessageId(EMessageId messageId)
         case EMessageId_StartRegisteringDataResponse :
             return "StartRegisteringDataResponse";
         
-        case EMessageId_StopReferenceThermocoupleTemperatureStabilizationRequest :
-            return "StopReferenceThermocoupleTemperatureStabilizationRequest";
+        case EMessageId_StopReferenceTemperatureStabilizationRequest :
+            return "StopReferenceTemperatureStabilizationRequest";
         
-        case EMessageId_StopReferenceThermocoupleTemperatureStabilizationResponse :
-            return "StopReferenceThermocoupleTemperatureStabilizationResponse";
+        case EMessageId_StopReferenceTemperatureStabilizationResponse :
+            return "StopReferenceTemperatureStabilizationResponse";
         
         case EMessageId_StopRegisteringDataRequest :
             return "StopRegisteringDataRequest";
@@ -444,8 +444,8 @@ const char* CStringConverter_ETimerId(ETimerId timerId)
         case ETimerId_HeaterTemperatureController :
             return "HeaterTemperatureController";
         
-        case ETimerId_DevicesDiagnostic :
-            return "DeviceDiagnostic";
+        case ETimerId_SegmentStopWatch :
+            return "SegmentStopWatch";
         
         case ETimerId_Unknown :
             return "Unknown";
