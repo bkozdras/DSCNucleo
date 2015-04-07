@@ -16,12 +16,15 @@
 #include "SharedDefines/SProcessModelParameters.h"
 #include "SharedDefines/SSegmentData.h"
 #include "SharedDefines/ERegisteringDataType.h"
+#include "SharedDefines/SControllerData.h"
+
+#define MAX_LOG_SIZE 220
 
 typedef struct _TLogInd
 {
     ELogSeverity severity;
     u16 length;
-    char data [220];
+    char data [MAX_LOG_SIZE];
 } TLogInd;
 
 typedef struct _TFaultInd
@@ -60,10 +63,15 @@ typedef struct _THeaterTemperatureInd
     float temperature;
 } THeaterTemperatureInd;
 
-typedef struct _TReferenceThermocoupleTemperatureInd
+typedef struct _TReferenceTemperatureInd
 {
     float temperature;
-} TReferenceThermocoupleTemperatureInd;
+} TReferenceTemperatureInd;
+
+typedef struct _TControllerDataInd
+{
+    SControllerData data;
+} TControllerDataInd;
 
 typedef struct _TSetHeaterPowerRequest
 {
@@ -187,6 +195,17 @@ typedef struct _TSetProcessModelParametersResponse
     bool success;
 } TSetProcessModelParametersResponse;
 
+typedef struct _TSetControllingAlgorithmExecutionPeriodRequest
+{
+    u16 value;
+} TSetControllingAlgorithmExecutionPeriodRequest;
+
+typedef struct _TSetControllingAlgorithmExecutionPeriodResponse
+{
+    u16 value;
+    bool success;
+} TSetControllingAlgorithmExecutionPeriodResponse;
+
 typedef struct _TRegisterNewSegmentToProgramRequest
 {
     SSegmentData segment;
@@ -195,13 +214,53 @@ typedef struct _TRegisterNewSegmentToProgramRequest
 typedef struct _TRegisterNewSegmentToProgramResponse
 {
     u16 segmentNumber;
+    u16 numberOfRegisteredSegments;
     bool success;
 } TRegisterNewSegmentToProgramResponse;
+
+typedef struct _TDeregisterSegmentFromProgramRequest
+{
+    u16 segmentNumber;
+} TDeregisterSegmentFromProgramRequest;
+
+typedef struct _TDeregisterSegmentFromProgramResponse
+{
+    u16 segmentNumber;
+    u16 numberOfRegisteredSegments;
+    bool success;
+} TDeregisterSegmentFromProgramResponse;
+
+typedef struct _TStartSegmentProgramRequest
+{
+    bool dummy;
+} TStartSegmentProgramRequest;
+
+typedef struct _TStartSegmentProgramResponse
+{
+    bool success;
+} TStartSegmentProgramResponse;
+
+typedef struct _TStopSegmentProgramRequest
+{
+    bool dummy;
+} TStopSegmentProgramRequest;
+
+typedef struct _TStopSegmentProgramResponse
+{
+    bool success;
+} TStopSegmentProgramResponse;
 
 typedef struct _TSegmentStartedInd
 {
     u16 segmentNumber;
+    u16 leftRegisteredSegments;
 } TSegmentStartedInd;
+
+typedef struct _TSegmentsProgramDoneInd
+{
+    u16 realizedSegmentsCount;
+    u16 numberOfLastDoneSegment;
+} TSegmentsProgramDoneInd;
 
 typedef struct _TStartReferenceTemperatureStabilizationRequest
 {
@@ -236,6 +295,7 @@ typedef struct _TSetRTDPolynomialCoefficientsResponse
 typedef struct _TUnitReadyInd
 {
     EUnitId unitId;
+    bool success;
 } TUnitReadyInd;
 
 typedef struct _TUnexpectedMasterMessageInd

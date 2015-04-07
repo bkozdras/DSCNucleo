@@ -3,6 +3,7 @@
 #define _S_SAMPLE_CARRIER_DATA_H_
 
 #include "SharedDefines/EUnitId.h"
+#include "Defines/CommonDefines.h"
 
 #define THERMOCOUPLES_COUNT 5
 

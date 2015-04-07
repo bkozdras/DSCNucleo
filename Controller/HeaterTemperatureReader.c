@@ -65,7 +65,7 @@ float HeaterTemperatureReader_getTemperature(void)
     return temperature;
 }
 
-void HeaterTemperature_registerNewTemperatureValueCallback(void (*newTemperatureValueCallback)(float))
+void HeaterTemperatureReader_registerNewTemperatureValueCallback(void (*newTemperatureValueCallback)(float))
 {
     osMutexWait(mMutexId, osWaitForever);
     mNewTemperatureValueCallback = newTemperatureValueCallback;
@@ -73,7 +73,7 @@ void HeaterTemperature_registerNewTemperatureValueCallback(void (*newTemperature
     Logger_debug("%s: Registered callback for new RTD temperature value.", getLoggerPrefix());
 }
 
-void HeaterTemperature_deregisterNewTemperatureValueCallback(void)
+void HeaterTemperatureReader_deregisterNewTemperatureValueCallback(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     mNewTemperatureValueCallback = NULL;

@@ -11,7 +11,7 @@
 THREAD_PROTOTYPE(ADS1248Controller)
 
 void ADS1248_setup(void);
-void ADS1248_initialize(void);
+bool ADS1248_initialize(void);
 bool ADS1248_isInitialized(void);
 
 bool ADS1248_changeMode(EADS1248Mode newMode);

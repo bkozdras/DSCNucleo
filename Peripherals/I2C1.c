@@ -30,7 +30,7 @@ void I2C1_setup(void)
     }
 }
 
-void I2C1_initialize(void)
+bool I2C1_initialize(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     
@@ -62,6 +62,8 @@ void I2C1_initialize(void)
     }
     
     osMutexRelease(mMutexId);
+    
+    return mIsInitialized;
 }
 
 void I2C1_uninitialize(void)

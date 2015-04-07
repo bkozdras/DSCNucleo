@@ -4,6 +4,7 @@
 #include "MasterCommunication/MasterDataTransmitter.h"
 
 #include "SharedDefines/TMessage.h"
+#include "SharedDefines/MessagesDefines.h"
 #include "System/ThreadMacros.h"
 #include "Utilities/CopyObject.h"
 
@@ -35,6 +36,13 @@ void MasterUartGateway_sendMessage(EMessageId messageType, void* message)
     packedMessage.transactionId = 0;
     packedMessage.data = message;
     packedMessage.length = MasterDataMemoryManager_getLength(messageType);
+    
+    if (EMessageId_LogInd == messageType)
+    {
+        TLogInd* logInd = (TLogInd*) message;
+        packedMessage.length = packedMessage.length - (MAX_LOG_SIZE - logInd->length);
+    }
+    
     packedMessage.crc = calculateCrcValue(packedMessage.length, packedMessage.data);
     
     Logger_debugSystem("MasterUartGateway: Message %s prepared and will be sent to Master.", CStringConverter_EMessageId(packedMessage.id));
@@ -45,6 +53,8 @@ void MasterUartGateway_sendMessage(EMessageId messageType, void* message)
 
 void MasterUartGateway_handleReceivedMessage(TMessage message)
 {
+    osMutexWait(mMutexId, osWaitForever);
+    
     bool verifyingResult = ( calculateCrcValue(message.length, message.data) == message.crc );
     if (verifyingResult)
     {
@@ -61,6 +71,8 @@ void MasterUartGateway_handleReceivedMessage(TMessage message)
     {
         Logger_debugSystem("MasterUartGateway: Message %s received but CRC verification failed.", CStringConverter_EMessageId(message.id));
     }
+    
+    osMutexRelease(mMutexId);
 }
 
 u16 calculateCrcValue(u8 dataLength, TByte* data)

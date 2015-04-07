@@ -13,10 +13,11 @@ typedef enum _EThreadId
     EThreadId_LMP90100SignalsMeasurementController      = 4,
     EThreadId_HeaterTemperatureReader                   = 5,
     EThreadId_SampleCarrierDataManager                  = 6,
-    EThreadId_ReferenceThermocoupleTemperatureReader    = 7,
+    EThreadId_ReferenceTemperatureReader                = 7,
     EThreadId_MasterDataTransmitter                     = 8,
     EThreadId_MasterDataReceiver                        = 9,
     EThreadId_MasterDataManager                         = 10,
+    EThreadId_StaticSegmentProgramExecutor              = 11,
     EThreadId_ISR                                       = 98,
     EThreadId_Unknown                                   = 99
 } EThreadId;

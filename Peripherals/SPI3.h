@@ -6,7 +6,7 @@
 #include "Peripherals/TypesSpi.h"
 
 void SPI3_setup(void);
-void SPI3_initialize(void);
+bool SPI3_initialize(void);
 void SPI3_uninitialize(void);
 
 void SPI3_block(void);

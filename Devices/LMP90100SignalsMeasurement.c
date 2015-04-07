@@ -116,25 +116,33 @@ void LMP90100SignalsMeasurement_setup(void)
     initializeGpio();
 }
 
-void LMP90100SignalsMeasurement_initialize(void)
+bool LMP90100SignalsMeasurement_initialize(void)
 {
     Logger_debug("%s: Device initialization.", getLoggerPrefix());
     
     if (!SPI3_isInitialized())
     {
-        Logger_warning("%s: Initialization failed. SPI2 is not initialized!", getLoggerPrefix());
-        return;
+        SPI3_initialize();
     }
     
     osMutexWait(mMutexId, osWaitForever);
     
     EXTI_setCallback(GET_GPIO_PIN(LMP90100_SIGNALS_MEASUREMENT_DRDYB_PIN), dataReadyCallback);
-    turnOffDevice();
-    mIsInitialized = true;
+    bool result = turnOffDevice();
     
     osMutexRelease(mMutexId);
     
-    Logger_info("%s: Device initialized!", getLoggerPrefix());
+    if (result)
+    {
+        mIsInitialized = true;
+        Logger_info("%s: Device initialized!", getLoggerPrefix());
+    }
+    else
+    {
+        Logger_error("%s: Device initialization failed!", getLoggerPrefix());
+    }
+    
+    return result;
 }
 
 bool LMP90100SignalsMeasurement_isInitialized(void)

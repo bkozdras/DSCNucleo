@@ -4,6 +4,8 @@
 #include "Utilities/Logger/Logger.h"
 #include "Utilities/Printer/CStringConverter.h"
 
+static void (*mNewFaultCallback)(SFaultIndication*) = NULL;
+
 static void sendFaultIndication(EFaultId faultId, EUnitId faultyUnitId, EUnitId faultySubUnitId, EFaultIndicationState state);
 
 void FaultIndication_start(EFaultId faultId, EUnitId faultyUnitId, EUnitId faultySubUnitId)
@@ -34,11 +36,25 @@ void FaultIndication_cancel(EFaultId faultId, EUnitId faultyUnitId, EUnitId faul
 
 void sendFaultIndication(EFaultId faultId, EUnitId faultyUnitId, EUnitId faultySubUnitId, EFaultIndicationState state)
 {
-    //SFaultIndication faultIndication;
+    if (mNewFaultCallback)
+    {
+        SFaultIndication faultIndication;
     
-    //faultIndication.faultId = faultId;
-    //faultIndication.state = state;
-    //faultIndication.faultyUnitId = faultyUnitId;
-    //faultIndication.faultySubUnitId = faultySubUnitId;
-    // sendMessage(EMessageId_FaultIndication, &faultIndication);
+        faultIndication.faultId = faultId;
+        faultIndication.state = state;
+        faultIndication.faultyUnitId = faultyUnitId;
+        faultIndication.faultySubUnitId = faultySubUnitId;
+        
+        (*mNewFaultCallback)(&faultIndication);
+    }
+}
+
+void FaultIndication_registerNewFaultCallback(void (*callback)(SFaultIndication*))
+{
+    mNewFaultCallback = callback;
+}
+
+void FaultIndication_deregisterNewFaultCallback(void)
+{
+    mNewFaultCallback = NULL;
 }

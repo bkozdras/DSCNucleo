@@ -34,7 +34,7 @@ void MCP4716_setup(void)
     }
 }
 
-void MCP4716_initialize(void)
+bool MCP4716_initialize(void)
 {
     if (!I2C1_isInitialized())
     {
@@ -44,21 +44,24 @@ void MCP4716_initialize(void)
     if ( !isDeviceReady(5, 500) )
     {
         Logger_error("%s: Device is not ready. Initialization failed!", getLoggerPrefix());
-        return;
+        return false;
     }
     
     if ( !configureRegisters() )
     {
         Logger_error("%s: Configuring registers failed. Initialization failed!", getLoggerPrefix());
-        return;
+        return false;
     }
     
     Logger_info("%s: Initialized!", getLoggerPrefix());
+    return true;
 }
 
-void MCP4716_setOutputVoltage(u16 value)
+bool MCP4716_setOutputVoltage(u16 value)
 {
     osMutexWait(mMutexId, osWaitForever);
+    
+    bool result = true;
     
     if (value != mActualValue)
     {
@@ -80,10 +83,13 @@ void MCP4716_setOutputVoltage(u16 value)
         {
             Logger_error("%s: Failure in transmitting I2C data during setting output voltage!", getLoggerPrefix());
             FaultIndication_start(EFaultId_Communication, EUnitId_Nucleo, EUnitId_MCP4716);
+            result = false;
         }
     }
     
     osMutexRelease(mMutexId);
+    
+    return result;
 }
 
 u16 MCP4716_getOutputVoltage(void)
@@ -94,9 +100,11 @@ u16 MCP4716_getOutputVoltage(void)
     return value;
 }
 
-u16 MCP4716_readOutputVoltage(void)
+bool MCP4716_readOutputVoltage(u16* value)
 {
     osMutexWait(mMutexId, osWaitForever);
+    
+    bool result = true;
     
     TByte data [6];
     
@@ -104,20 +112,23 @@ u16 MCP4716_readOutputVoltage(void)
     {
         Logger_error("%s: Failure in receiving I2C data during getting output voltage!", getLoggerPrefix());
         FaultIndication_start(EFaultId_Communication, EUnitId_Nucleo, EUnitId_MCP4716);
-        return 0;
+        result = false;
     }
-    
-    u16 outputVoltage = 0x00;
-    outputVoltage |= ( ( ( (u16) (data[1]) ) << 2 ) & 0x3FC);
-    outputVoltage |= ( ( ( (u16) (data[2]) ) >> 6 ) & 0x03);
-    
-    Logger_debug("%s: Output voltage (raw value): %u.", getLoggerPrefix(), outputVoltage);
-    
-    mActualValue = outputVoltage;
+    else
+    {
+        u16 outputVoltage = 0x00;
+        outputVoltage |= ( ( ( (u16) (data[1]) ) << 2 ) & 0x3FC);
+        outputVoltage |= ( ( ( (u16) (data[2]) ) >> 6 ) & 0x03);
+        
+        Logger_debug("%s: Output voltage (raw value): %u.", getLoggerPrefix(), outputVoltage);
+        
+        mActualValue = outputVoltage;
+        *value = outputVoltage;
+    }
     
     osMutexRelease(mMutexId);
     
-    return outputVoltage;
+    return result;
 }
 
 float MCP4716_convertOutputVoltageToRealData(u16 outputVoltage)

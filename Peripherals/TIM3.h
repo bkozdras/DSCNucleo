@@ -1,3 +1,5 @@
+#if 0
+
 #ifndef _TIM3_H_
 
 #define _TIM3_H_
@@ -11,5 +13,7 @@ bool TIM3_start(void);
 bool TIM3_stop(void);
 void TIM3_registerPeriodElapsedCallback(void (*periodElapsedCallback)(void));
 void TIM3_deregisterPeriodElapsedCallback(void);
+
+#endif
 
 #endif

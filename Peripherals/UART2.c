@@ -15,7 +15,7 @@ static void mspDeInit(UART_HandleTypeDef *uartHandle);
 
 void UART2_initializeDefault(void)
 {
-    UART2_initialize(115200, UART_MODE_TX_RX);
+    UART2_initialize(256000, UART_MODE_TX_RX);
 }
 
 void UART2_initialize(TUartBaudRate baudRate, TUartMode mode)

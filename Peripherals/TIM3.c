@@ -1,3 +1,5 @@
+#if 0
+
 #include "Peripherals/TIM3.h"
 
 #include "stm32f4xx_hal.h"
@@ -172,3 +174,5 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* timHandler)
         }
     }
 }
+
+#endif

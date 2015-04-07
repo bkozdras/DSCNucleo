@@ -6,7 +6,7 @@
 #include "Peripherals/TypesSpi.h"
 
 void SPI2_setup(void);
-void SPI2_initialize(void);
+bool SPI2_initialize(void);
 void SPI2_uninitialize(void);
 
 bool SPI2_transmit(const TByte* data, const u8 dataLength, const TTimeMs timeout);

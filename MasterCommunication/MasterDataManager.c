@@ -2,6 +2,8 @@
 #include "MasterCommunication/MasterDataMemoryManager.h"
 #include "MasterCommunication/MasterUartGateway.h"
 
+#include "FaultManagement/FaultIndication.h"
+
 #include "SharedDefines/MessagesDefines.h"
 #include "SharedDefines/EMessageId.h"
 #include "SharedDefines/TMessage.h"
@@ -10,17 +12,22 @@
 #include "SharedDefines/EUnitId.h"
 #include "SharedDefines/SRTDPolynomialCoefficients.h"
 #include "SharedDefines/ELogSeverity.h"
+#include "SharedDefines/SControllerData.h"
 
 #include "System/EventManagement/EEventId.h"
+#include "System/SystemManager.h"
 
 #include "Devices/ADS1248.h"
 #include "Devices/LMP90100ControlSystem.h"
 #include "Devices/LMP90100SignalsMeasurement.h"
 #include "Devices/MCP4716.h"
 
+#include "Controller/HeaterTemperatureController.h"
 #include "Controller/HeaterTemperatureReader.h"
+#include "Controller/ReferenceTemperatureController.h"
+#include "Controller/ReferenceTemperatureReader.h"
 #include "Controller/SampleCarrierDataManager.h"
-#include "Controller/ReferenceThermocoupleTemperatureReader.h"
+#include "Controller/SegmentsManager.h"
 
 #include "Utilities/Printer/CStringConverter.h"
 #include "Utilities/Logger/Logger.h"
@@ -53,7 +60,11 @@ static void handleSetNewDeviceModeLMP90100SignalsMeasurementRequest(TSetNewDevic
 static void handleSetControlSystemTypeRequest(TSetControlSystemTypeRequest* request);
 static void handleSetControllerTunesRequest(TSetControllerTunesRequest* request);
 static void handleSetProcessModelParametersRequest(TSetProcessModelParametersRequest* request);
+static void handleSetControllingAlgorithmExecutionPeriodRequest(TSetControllingAlgorithmExecutionPeriodRequest* request);
 static void handleRegisterNewSegmentToProgramRequest(TRegisterNewSegmentToProgramRequest* request);
+static void handleDeregisterSegmentFromProgramRequest(TDeregisterSegmentFromProgramRequest* request);
+static void handleStartSegmentProgramRequest(TStartSegmentProgramRequest* request);
+static void handleStopSegmentProgramRequest(TStopSegmentProgramRequest* request);
 static void handleStartReferenceTemperatureStabilizationRequest(TStartReferenceTemperatureStabilizationRequest* request);
 static void handleStopReferenceTemperatureStabilizationRequest(TStopReferenceTemperatureStabilizationRequest* request);
 static void handleSetRTDPolynomialCoefficientsRequest(TSetRTDPolynomialCoefficientsRequest* request);
@@ -61,17 +72,19 @@ static void handleSetRTDPolynomialCoefficientsRequest(TSetRTDPolynomialCoefficie
 static void handleUnexpectedMessage(u8 messageId);
 
 // Indications to Master callbacks
-static void logIndCallback(void);
+static void logIndCallback(TLogInd* logInd);
 static void faultIndCallback(SFaultIndication* faultIndication);
 static void sampleCarrierDataIndCallback(SSampleCarrierData* sampleCarrierData);
 static void heaterTemperatureIndCallback(float temperature);
-static void referenceThermocoupleTemperatureIndCallback(float temperature);
+static void referenceTemperatureIndCallback(float temperature);
+static void controllerDataIndCallback(SControllerData* controllerData);
 static void segmentStartedInd(u8 segmentNumber);
-static void unitReadyIndCallback(EUnitId unitId);
+static void segmentsProgramDoneInd(u16 realizedSegmentsCount, u16 lastSegmentDoneNumber);
+static void unitReadyIndCallback(EUnitId unitId, bool status);
 
 // Delayed responses to Master
 
-static void callibreADS1248Callback(EADS1248CallibrationType type, bool success);
+static void callibreADS1248ResponseCallback(EADS1248CallibrationType type, bool success);
 
 /****************************************************************************************************************************************************/
 
@@ -98,7 +111,18 @@ void MasterDataManager_setup(void)
 
 void MasterDataManager_initialize(void)
 {
-    Logger_debug("%s: Initialized!", getLoggerPrefix());
+    osMutexWait(mMutexId, osWaitForever);
+    
+    //HeaterTemperatureController_registerNewControllerDataCallback(controllerDataIndCallback);
+    //HeaterTemperatureReader_registerNewTemperatureValueCallback(heaterTemperatureIndCallback);
+    //ReferenceTemperatureReader_registerDataReadyCallback(referenceTemperatureIndCallback);
+    //SampleCarrierDataManager_registerDataReadyCallback(sampleCarrierDataIndCallback);
+    //FaultIndication_registerNewFaultCallback(faultIndCallback);
+    //SystemManager_registerUnitReadyIndCallback(unitReadyIndCallback);
+    //Logger_registerMasterMessageLogIndCallback(logIndCallback);
+    
+    Logger_info("%s: Initialized!", getLoggerPrefix());
+    osMutexRelease(mMutexId);
 }
 
 void handleMasterData(TMessage* message)
@@ -118,7 +142,11 @@ void handleMasterData(TMessage* message)
         HANDLE_REQUEST(SetControlSystemTypeRequest)
         HANDLE_REQUEST(SetControllerTunesRequest)
         HANDLE_REQUEST(SetProcessModelParametersRequest)
+        HANDLE_REQUEST(SetControllingAlgorithmExecutionPeriodRequest)
         HANDLE_REQUEST(RegisterNewSegmentToProgramRequest)
+        HANDLE_REQUEST(DeregisterSegmentFromProgramRequest)
+        HANDLE_REQUEST(StartSegmentProgramRequest)
+        HANDLE_REQUEST(StopSegmentProgramRequest)
         HANDLE_REQUEST(StartReferenceTemperatureStabilizationRequest)
         HANDLE_REQUEST(StopReferenceTemperatureStabilizationRequest)
         HANDLE_REQUEST(SetRTDPolynomialCoefficientsRequest)
@@ -222,11 +250,39 @@ void handleSetProcessModelParametersRequest(TSetProcessModelParametersRequest* r
     MasterUartGateway_sendMessage(EMessageId_SetProcessModelParametersResponse, response);
 }
 
+void handleSetControllingAlgorithmExecutionPeriodRequest(TSetControllingAlgorithmExecutionPeriodRequest* request)
+{
+    TSetControllingAlgorithmExecutionPeriodResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetControllingAlgorithmExecutionPeriodResponse);
+    
+    MasterUartGateway_sendMessage(EMessageId_SetControllingAlgorithmExecutionPeriodResponse, response);
+}
+
 void handleRegisterNewSegmentToProgramRequest(TRegisterNewSegmentToProgramRequest* request)
 {
     TRegisterNewSegmentToProgramResponse* response = MasterDataMemoryManager_allocate(EMessageId_RegisterNewSegmentToProgramResponse);
     
     MasterUartGateway_sendMessage(EMessageId_RegisterNewSegmentToProgramResponse, response);
+}
+
+void handleDeregisterSegmentFromProgramRequest(TDeregisterSegmentFromProgramRequest* request)
+{
+    TDeregisterSegmentFromProgramResponse* response = MasterDataMemoryManager_allocate(EMessageId_DeregisterSegmentFromProgramResponse);
+    
+    MasterUartGateway_sendMessage(EMessageId_DeregisterSegmentFromProgramResponse, response);
+}
+
+void handleStartSegmentProgramRequest(TStartSegmentProgramRequest* request)
+{
+    TStartSegmentProgramResponse* response = MasterDataMemoryManager_allocate(EMessageId_StartSegmentProgramResponse);
+    
+    MasterUartGateway_sendMessage(EMessageId_StartSegmentProgramResponse, response);
+}
+
+void handleStopSegmentProgramRequest(TStopSegmentProgramRequest* request)
+{
+    TStopSegmentProgramResponse* response = MasterDataMemoryManager_allocate(EMessageId_StopSegmentProgramResponse);
+    
+    MasterUartGateway_sendMessage(EMessageId_StopSegmentProgramResponse, response);
 }
 
 void handleStartReferenceTemperatureStabilizationRequest(TStartReferenceTemperatureStabilizationRequest* request)
@@ -260,11 +316,9 @@ void handleUnexpectedMessage(u8 messageId)
 }
 
 // Indications to Master callbacks
-void logIndCallback(void)
+void logIndCallback(TLogInd* logInd)
 {
-    TLogInd* indication = MasterDataMemoryManager_allocate(EMessageId_LogInd);
-    
-    MasterUartGateway_sendMessage(EMessageId_LogInd, indication);
+    MasterUartGateway_sendMessage(EMessageId_LogInd, logInd);
 }
 
 void faultIndCallback(SFaultIndication* faultIndication)
@@ -288,11 +342,26 @@ void heaterTemperatureIndCallback(float temperature)
     MasterUartGateway_sendMessage(EMessageId_HeaterTemperatureInd, indication);
 }
 
-void referenceThermocoupleTemperatureIndCallback(float temperature)
+void referenceTemperatureIndCallback(float temperature)
 {
-    TReferenceThermocoupleTemperatureInd* indication = MasterDataMemoryManager_allocate(EMessageId_ReferenceThermocoupleTemperatureInd);
+    TReferenceTemperatureInd* indication = MasterDataMemoryManager_allocate(EMessageId_ReferenceTemperatureInd);
     indication->temperature = temperature;
-    MasterUartGateway_sendMessage(EMessageId_ReferenceThermocoupleTemperatureInd, indication);
+    MasterUartGateway_sendMessage(EMessageId_ReferenceTemperatureInd, indication);
+}
+
+void controllerDataIndCallback(SControllerData* controllerData)
+{
+    TControllerDataInd* indication = MasterDataMemoryManager_allocate(EMessageId_ControllerDataInd);
+    CopyObject_SControllerData(controllerData, &(indication->data));
+    MasterUartGateway_sendMessage(EMessageId_ControllerDataInd, indication);
+}
+
+void segmentsProgramDoneInd(u16 realizedSegmentsCount, u16 lastSegmentDoneNumber)
+{
+    TSegmentsProgramDoneInd* indication = MasterDataMemoryManager_allocate(EMessageId_SegmentsProgramDoneInd);
+    indication->numberOfLastDoneSegment = lastSegmentDoneNumber;
+    indication->realizedSegmentsCount = realizedSegmentsCount;
+    MasterUartGateway_sendMessage(EMessageId_SegmentsProgramDoneInd, indication);
 }
 
 void segmentStartedInd(u8 segmentNumber)
@@ -302,16 +371,17 @@ void segmentStartedInd(u8 segmentNumber)
     MasterUartGateway_sendMessage(EMessageId_SegmentStartedInd, indication);
 }
 
-void unitReadyIndCallback(EUnitId unitId)
+void unitReadyIndCallback(EUnitId unitId, bool status)
 {
     TUnitReadyInd* indication = MasterDataMemoryManager_allocate(EMessageId_UnitReadyInd);
     indication->unitId = unitId;
+    indication->success = status;
     MasterUartGateway_sendMessage(EMessageId_UnitReadyInd, indication);
 }
 
 // Delayed responses to Master
 
-void callibreADS1248Callback(EADS1248CallibrationType type, bool success)
+void callibreADS1248ResponseCallback(EADS1248CallibrationType type, bool success)
 {
     TCallibreADS1248Response* response = MasterDataMemoryManager_allocate(EMessageId_CallibreADS1248Response);
     response->callibrationType = type;

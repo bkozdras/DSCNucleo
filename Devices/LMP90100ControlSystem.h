@@ -11,7 +11,7 @@
 THREAD_PROTOTYPE(LMP90100ControlSystemController)
 
 void LMP90100ControlSystem_setup(void);
-void LMP90100ControlSystem_initialize(void);
+bool LMP90100ControlSystem_initialize(void);
 bool LMP90100ControlSystem_isInitialized(void);
 
 bool LMP90100ControlSystem_changeMode(ELMP90100Mode newMode);

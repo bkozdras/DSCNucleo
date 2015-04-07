@@ -5,19 +5,26 @@
 #include "Utilities/Printer/CStringConverter.h"
 #include "Peripherals/UART2.h"
 #include "Peripherals/UART1.h"
+#include "SharedDefines/ELogSeverity.h"
 #include "SharedDefines/PrinterPrefixes.h"
 #include "stdio.h"
 #include "stdarg.h"
+#include "string.h"
+
+#include "MasterCommunication/MasterDataMemoryManager.h"
+#include "SharedDefines/MessagesDefines.h"
 
 osMutexDef(mMutexLogger);
 osMutexId mMutexLoggerId = NULL;
 
 static ELoggerType mLoggerType = ELoggerType_Off;
 static ELoggerLevel mLoggerLevel = ELoggerLevel_Off;
+static void (*mMasterMesssageLogIndCallback)(TLogInd*) = NULL;
 
 static void printPrefix(void);
 static void printPostfix(void);
 static void initialize(ELoggerType loggerType, ELoggerLevel loggerLevel);
+static bool isLogShouldBePrinted(ELogSeverity severity);
 static void uninitialize(void);
 static void setType(ELoggerType loggerType);
 static void setLevel(ELoggerLevel loggerLevel);
@@ -73,7 +80,7 @@ void Logger_setLevel(ELoggerLevel loggerLevel)
     
     osMutexRelease(mMutexLoggerId);
     
-    Logger_info("Logger: Changed type from: %s to %s.", CStringConverter_ELoggerLevel(oldLoggerLevel), CStringConverter_ELoggerLevel(mLoggerLevel));
+    Logger_info("Logger: Changed level from: %s to %s.", CStringConverter_ELoggerLevel(oldLoggerLevel), CStringConverter_ELoggerLevel(mLoggerLevel));
 }
 
 bool Logger_isInitialized(void)
@@ -81,26 +88,33 @@ bool Logger_isInitialized(void)
     return ( ELoggerLevel_Off != mLoggerLevel );
 }
 
+void Logger_registerMasterMessageLogIndCallback(void (*callback)(TLogInd*))
+{
+    mMasterMesssageLogIndCallback = callback;
+}
+
+void Logger_deregisterMasterMessageLogIndCallback(void)
+{
+    mMasterMesssageLogIndCallback = NULL;
+}
+
 void Logger_debugSystem(const char* format, ...)
 {
-    if (!(Logger_isInitialized() && ( ELoggerLevel_DebugSystem == mLoggerLevel )))
+    if (!isLogShouldBePrinted(ELogSeverity_DebugSystem))
     {
         return;
     }
     
     osMutexWait(mMutexLoggerId, osWaitForever);
     
-    if (ELoggerType_EvalCOM1 == mLoggerType)
+    if (ELoggerType_EvalCOM1 == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
     {
         printPrefix();
         printf("DBS: ");
-    }
-    va_list vaList;
-    va_start( vaList, format );
-    vprintf( format, vaList );
-    va_end( vaList );
-    if (ELoggerType_EvalCOM1 == mLoggerType)
-    {
+        va_list vaList;
+        va_start( vaList, format );
+        vprintf( format, vaList );
+        va_end( vaList );
         printPostfix();
     }
     
@@ -109,25 +123,38 @@ void Logger_debugSystem(const char* format, ...)
 
 void Logger_debug(const char* format, ...)
 {
-    if (!(Logger_isInitialized() && ( (ELoggerLevel_Debug == mLoggerLevel) || (ELoggerLevel_DebugSystem == mLoggerLevel) )))
+    if (!isLogShouldBePrinted(ELogSeverity_Debug))
     {
         return;
     }
     
     osMutexWait(mMutexLoggerId, osWaitForever);
     
-    if (ELoggerType_EvalCOM1 == mLoggerType)
+    if (ELoggerType_EvalCOM1 == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
     {
         printPrefix();
         printf("DBG: ");
-    }
-    va_list vaList;
-    va_start( vaList, format );
-    vprintf( format, vaList );
-    va_end( vaList );
-    if (ELoggerType_EvalCOM1 == mLoggerType)
-    {
+        va_list vaList;
+        va_start( vaList, format );
+        vprintf( format, vaList );
+        va_end( vaList );
         printPostfix();
+    }
+    
+    if (ELoggerType_MasterMessage == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        if (mMasterMesssageLogIndCallback)
+        {
+            TLogInd* logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
+            logInd->severity = ELogSeverity_Debug;
+            
+            va_list vaList;
+            va_start( vaList, format );
+            logInd->length = vsprintf( logInd->data, format, vaList );
+            va_end( vaList );
+            
+            (*mMasterMesssageLogIndCallback)(logInd);
+        }
     }
     
     osMutexRelease(mMutexLoggerId);
@@ -135,74 +162,119 @@ void Logger_debug(const char* format, ...)
 
 void Logger_info(const char* format, ...)
 {
+    if (!isLogShouldBePrinted(ELogSeverity_Info))
+    {
+        return;
+    }
+    
     osMutexWait(mMutexLoggerId, osWaitForever);
     
-    if (Logger_isInitialized())
+    if (ELoggerType_EvalCOM1 == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
     {
-        if (ELoggerType_EvalCOM1 == mLoggerType)
-        {
-            printPrefix();
-            printf("INF: ");
-        }
+        printPrefix();
+        printf("INF: ");
         va_list vaList;
         va_start( vaList, format );
         vprintf( format, vaList );
         va_end( vaList );
-        if (ELoggerType_EvalCOM1 == mLoggerType)
+        printPostfix();
+    }
+    
+    if (ELoggerType_MasterMessage == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        if (mMasterMesssageLogIndCallback)
         {
-            printPostfix();
+            TLogInd* logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
+            logInd->severity = ELogSeverity_Info;
+            
+            va_list vaList;
+            va_start( vaList, format );
+            logInd->length = vsprintf( logInd->data, format, vaList );
+            va_end( vaList );
+            
+            (*mMasterMesssageLogIndCallback)(logInd);
         }
-    } 
-
-    osMutexRelease(mMutexLoggerId);    
+    }
+    
+    osMutexRelease(mMutexLoggerId);
 }
 
 void Logger_warning(const char* format, ...)
 {
+    if (!isLogShouldBePrinted(ELogSeverity_Debug))
+    {
+        return;
+    }
+    
     osMutexWait(mMutexLoggerId, osWaitForever);
     
-    if (Logger_isInitialized())
+    if (ELoggerType_EvalCOM1 == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
     {
-        if (ELoggerType_EvalCOM1 == mLoggerType)
-        {
-            printPrefix();
-            printf("WRN: ");
-        }
+        printPrefix();
+        printf("WRN: ");
         va_list vaList;
         va_start( vaList, format );
         vprintf( format, vaList );
         va_end( vaList );
-        if (ELoggerType_EvalCOM1 == mLoggerType)
+        printPostfix();
+    }
+    
+    if (ELoggerType_MasterMessage == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        if (mMasterMesssageLogIndCallback)
         {
-            printPostfix();
+            TLogInd* logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
+            logInd->severity = ELogSeverity_Warning;
+            
+            va_list vaList;
+            va_start( vaList, format );
+            logInd->length = vsprintf( logInd->data, format, vaList );
+            va_end( vaList );
+            
+            (*mMasterMesssageLogIndCallback)(logInd);
         }
     }
-
-    osMutexRelease(mMutexLoggerId);    
+    
+    osMutexRelease(mMutexLoggerId);
 }
 
 void Logger_error(const char* format, ...)
 {
+    if (!isLogShouldBePrinted(ELogSeverity_Debug))
+    {
+        return;
+    }
+    
     osMutexWait(mMutexLoggerId, osWaitForever);
     
-    if (Logger_isInitialized())
+    if (ELoggerType_EvalCOM1 == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
     {
-        if (ELoggerType_EvalCOM1 == mLoggerType)
-        {
-            printPrefix();
-            printf("ERR: ");
-        }
+        printPrefix();
+        printf("ERR: ");
         va_list vaList;
         va_start( vaList, format );
         vprintf( format, vaList );
         va_end( vaList );
-        if (ELoggerType_EvalCOM1 == mLoggerType)
+        printPostfix();
+    }
+    
+    if (ELoggerType_MasterMessage == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        if (mMasterMesssageLogIndCallback)
         {
-            printPostfix();
+            TLogInd* logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
+            logInd->severity = ELogSeverity_Error;
+            
+            va_list vaList;
+            va_start( vaList, format );
+            logInd->length = vsprintf( logInd->data, format, vaList );
+            va_end( vaList );
+            
+            (*mMasterMesssageLogIndCallback)(logInd);
         }
     }
-
-    osMutexRelease(mMutexLoggerId);    
+    
+    osMutexRelease(mMutexLoggerId);
 }
 
 void printPrefix(void)
@@ -218,33 +290,56 @@ void printPostfix(void)
 
 void initialize(ELoggerType loggerType, ELoggerLevel loggerLevel)
 {
-    if (!Logger_isInitialized())
+    mLoggerType = loggerType;
+    mLoggerLevel = loggerLevel;
+    
+    if (ELoggerType_EvalCOM1AndMasterMessage == mLoggerType || ELoggerType_EvalCOM1 == mLoggerType)
     {
-        mLoggerType = loggerType;
-        mLoggerLevel = loggerLevel;
-        
-        if (ELoggerType_EvalCOM1AndATCommand == mLoggerType || ELoggerType_EvalCOM1 == mLoggerType)
+        if (!UART2_isInitialized())
         {
             UART2_initializeDefault();
         }
-        
-        if (ELoggerType_EvalCOM1AndATCommand == mLoggerType || ELoggerType_ATCommand == mLoggerType)
+    }
+}
+
+bool isLogShouldBePrinted(ELogSeverity severity)
+{
+    switch (mLoggerLevel)
+    {
+        case ELoggerLevel_Off :
         {
-            //
+            return false;
         }
-    }    
+        
+        case ELoggerLevel_DebugSystem :
+        {
+            return true;
+        }
+        
+        case ELoggerLevel_Debug :
+        {
+            return ( ELogSeverity_DebugSystem != severity );
+        }
+        
+        case ELoggerLevel_Info :
+        {
+            return ( ( ELogSeverity_DebugSystem != severity ) && ( ELogSeverity_Debug != severity ) );
+        }
+    }
+    
+    return false;
 }
 
 void uninitialize(void)
 {
     if (Logger_isInitialized())
     {
-        if (ELoggerType_EvalCOM1AndATCommand == mLoggerType || ELoggerType_EvalCOM1 == mLoggerType)
+        if (ELoggerType_EvalCOM1AndMasterMessage == mLoggerType || ELoggerType_EvalCOM1 == mLoggerType)
         {
             UART2_uninitialize();
         }
 
-        if (ELoggerType_EvalCOM1AndATCommand == mLoggerType || ELoggerType_ATCommand == mLoggerType)
+        if (ELoggerType_EvalCOM1AndMasterMessage == mLoggerType || ELoggerType_MasterMessage == mLoggerType)
         {
             //
         }
@@ -256,8 +351,8 @@ void uninitialize(void)
 void setType(ELoggerType loggerType)
 {
     ELoggerLevel actualLoggerLevel = mLoggerLevel;
-    uninitialize();
-    initialize(loggerType, actualLoggerLevel);    
+    //uninitialize();
+    initialize(loggerType, actualLoggerLevel);
 }
 
 void setLevel(ELoggerLevel loggerLevel)
@@ -278,11 +373,6 @@ void setLevel(ELoggerLevel loggerLevel)
   
 PUTCHAR_PROTOTYPE
 {
-  /* Place your implementation of fputc here */
-  /* e.g. write a character to the EVAL_COM1 and Loop until the end of transmission */
-  //while(__HAL_UART_GET_FLAG(&UartHandle, UART_FLAG_TXE) == RESET);
-  //HAL_UART_Transmit(&UartHandle, (uint8_t *)&ch, 1, 0xFFFF); 
-  UART2_sendByte((uint8_t)ch);
-    
-  return ch;
+    UART2_sendByte((uint8_t)ch);
+    return ch;
 }

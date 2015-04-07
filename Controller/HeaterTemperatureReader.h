@@ -9,7 +9,7 @@ THREAD_PROTOTYPE(HeaterTemperatureReader)
 void HeaterTemperatureReader_setup(void);
 void HeaterTemperatureReader_initialize(void);
 float HeaterTemperatureReader_getTemperature(void);
-void HeaterTemperature_registerNewTemperatureValueCallback(void (*newTemperatureValueCallback)(float));
-void HeaterTemperature_deregisterNewTemperatureValueCallback(void);
+void HeaterTemperatureReader_registerNewTemperatureValueCallback(void (*newTemperatureValueCallback)(float));
+void HeaterTemperatureReader_deregisterNewTemperatureValueCallback(void);
 
 #endif

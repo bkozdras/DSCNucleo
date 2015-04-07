@@ -127,12 +127,13 @@ DEFINE_EVENT_QUEUE_SIZED(LMP90100ControlSystemController, 2);
 DEFINE_EVENT_QUEUE_SIZED(LMP90100SignalsMeasurementController, 2);
 DEFINE_EVENT_QUEUE_SIZED(HeaterTemperatureReader, 2);
 DEFINE_EVENT_QUEUE_SIZED(SampleCarrierDataManager, 2);
-DEFINE_EVENT_QUEUE_SIZED(ReferenceThermocoupleTemperatureReader, 2);
+DEFINE_EVENT_QUEUE_SIZED(ReferenceTemperatureReader, 2);
 DEFINE_EVENT_QUEUE_SIZED(SampleThread, 2);
 DEFINE_EVENT_QUEUE_SIZED(SystemManager, 2);
 DEFINE_EVENT_QUEUE_SIZED(MasterDataTransmitter, 10);
 DEFINE_EVENT_QUEUE_SIZED(MasterDataReceiver, 10);
 DEFINE_EVENT_QUEUE_SIZED(MasterDataManager, 10);
+DEFINE_EVENT_QUEUE_SIZED(StaticSegmentProgramExecutor, 2);
 
 DEFINE_EVENT_HEAP(NewRTDValueInd, 10);
 DEFINE_EVENT_HEAP(NewThermocoupleVoltageValueInd, 10);
@@ -164,12 +165,13 @@ void Event_setup(void)
     CREATE_EVENT_QUEUE(LMP90100SignalsMeasurementController, Signal);
     CREATE_EVENT_QUEUE(SampleCarrierDataManager, Signal);
     CREATE_EVENT_QUEUE(HeaterTemperatureReader, Signal);
-    CREATE_EVENT_QUEUE(ReferenceThermocoupleTemperatureReader, Signal);
+    CREATE_EVENT_QUEUE(ReferenceTemperatureReader, Signal);
     CREATE_EVENT_QUEUE(SampleThread, Signal);
     CREATE_EVENT_QUEUE(SystemManager, Signal);
     CREATE_EVENT_QUEUE(MasterDataTransmitter, Signal);
     CREATE_EVENT_QUEUE(MasterDataReceiver, Signal);
     CREATE_EVENT_QUEUE(MasterDataManager, Signal);
+    CREATE_EVENT_QUEUE(StaticSegmentProgramExecutor, Signal);
     
     CREATE_EVENT_HEAP(NewRTDValueInd);
     CREATE_EVENT_HEAP(NewThermocoupleVoltageValueInd);
@@ -183,12 +185,13 @@ OsEventId Event_getId(EThreadId threadId)
     EVENT_GET_ID_HANDLER(LMP90100SignalsMeasurementController)
     EVENT_GET_ID_HANDLER(HeaterTemperatureReader)
     EVENT_GET_ID_HANDLER(SampleCarrierDataManager)
-    EVENT_GET_ID_HANDLER(ReferenceThermocoupleTemperatureReader)
+    EVENT_GET_ID_HANDLER(ReferenceTemperatureReader)
     EVENT_GET_ID_HANDLER(SampleThread)
     EVENT_GET_ID_HANDLER(SystemManager)
     EVENT_GET_ID_HANDLER(MasterDataTransmitter)
     EVENT_GET_ID_HANDLER(MasterDataReceiver)
     EVENT_GET_ID_HANDLER(MasterDataManager)
+    EVENT_GET_ID_HANDLER(StaticSegmentProgramExecutor)
     
     return NULL;
 }
@@ -243,12 +246,13 @@ osStatus sendEventToThread(EThreadId threadId, TEvent* allocatedEvent)
         SEND_EVENT_TO_THREAD_HANDLER(LMP90100SignalsMeasurementController)
         SEND_EVENT_TO_THREAD_HANDLER(HeaterTemperatureReader)
         SEND_EVENT_TO_THREAD_HANDLER(SampleCarrierDataManager)
-        SEND_EVENT_TO_THREAD_HANDLER(ReferenceThermocoupleTemperatureReader)
+        SEND_EVENT_TO_THREAD_HANDLER(ReferenceTemperatureReader)
         SEND_EVENT_TO_THREAD_HANDLER(SampleThread)
         SEND_EVENT_TO_THREAD_HANDLER(SystemManager)
         SEND_EVENT_TO_THREAD_HANDLER(MasterDataTransmitter)
         SEND_EVENT_TO_THREAD_HANDLER(MasterDataReceiver)
         SEND_EVENT_TO_THREAD_HANDLER(MasterDataManager)
+        SEND_EVENT_TO_THREAD_HANDLER(StaticSegmentProgramExecutor)
     }
     
     return status;
@@ -278,12 +282,13 @@ TEvent* allocateMallocEvent(EThreadId threadId)
     ALLOCATE_MALLOC_HANDLER(LMP90100SignalsMeasurementController)
     ALLOCATE_MALLOC_HANDLER(HeaterTemperatureReader)
     ALLOCATE_MALLOC_HANDLER(SampleCarrierDataManager)
-    ALLOCATE_MALLOC_HANDLER(ReferenceThermocoupleTemperatureReader)
+    ALLOCATE_MALLOC_HANDLER(ReferenceTemperatureReader)
     ALLOCATE_MALLOC_HANDLER(SampleThread)
     ALLOCATE_MALLOC_HANDLER(SystemManager)
     ALLOCATE_MALLOC_HANDLER(MasterDataTransmitter)
     ALLOCATE_MALLOC_HANDLER(MasterDataReceiver)
     ALLOCATE_MALLOC_HANDLER(MasterDataManager)
+    ALLOCATE_MALLOC_HANDLER(StaticSegmentProgramExecutor)
     
     return allocatedEvent;
 }
@@ -312,12 +317,13 @@ TEvent* allocateCallocEvent(EThreadId threadId)
     ALLOCATE_CALLOC_HANDLER(LMP90100SignalsMeasurementController)
     ALLOCATE_CALLOC_HANDLER(HeaterTemperatureReader)
     ALLOCATE_CALLOC_HANDLER(SampleCarrierDataManager)
-    ALLOCATE_CALLOC_HANDLER(ReferenceThermocoupleTemperatureReader)
+    ALLOCATE_CALLOC_HANDLER(ReferenceTemperatureReader)
     ALLOCATE_CALLOC_HANDLER(SampleThread)
     ALLOCATE_CALLOC_HANDLER(SystemManager)
     ALLOCATE_CALLOC_HANDLER(MasterDataTransmitter)
     ALLOCATE_CALLOC_HANDLER(MasterDataReceiver)
     ALLOCATE_CALLOC_HANDLER(MasterDataManager)
+    ALLOCATE_CALLOC_HANDLER(StaticSegmentProgramExecutor)
     
     return allocatedEvent;
 }
@@ -357,12 +363,13 @@ void freeEvent(EThreadId threadId, TEvent* event)
     FREE_ALLOCATED_EVENT_HANDLER(LMP90100SignalsMeasurementController)
     FREE_ALLOCATED_EVENT_HANDLER(HeaterTemperatureReader)
     FREE_ALLOCATED_EVENT_HANDLER(SampleCarrierDataManager)
-    FREE_ALLOCATED_EVENT_HANDLER(ReferenceThermocoupleTemperatureReader)
+    FREE_ALLOCATED_EVENT_HANDLER(ReferenceTemperatureReader)
     FREE_ALLOCATED_EVENT_HANDLER(SampleThread)
     FREE_ALLOCATED_EVENT_HANDLER(SystemManager)
     FREE_ALLOCATED_EVENT_HANDLER(MasterDataTransmitter)
     FREE_ALLOCATED_EVENT_HANDLER(MasterDataReceiver)
     FREE_ALLOCATED_EVENT_HANDLER(MasterDataManager)
+    FREE_ALLOCATED_EVENT_HANDLER(StaticSegmentProgramExecutor)
 }
 
 #undef waitForEvent

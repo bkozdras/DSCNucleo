@@ -19,6 +19,7 @@ typedef enum _EEventId
     EEventId_TransmitData                       = 12,
     EEventId_ReceiveData                        = 13,
     EEventId_StartReceivingData                 = 14,
+    EEventId_StartStaticSegment                 = 15,
     EEventId_Terminate                          = 99
 } EEventId;
 

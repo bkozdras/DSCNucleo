@@ -25,8 +25,11 @@
 #include "Devices/MCP4716.h"
 
 #include "Controller/HeaterTemperatureReader.h"
+#include "Controller/HeaterTemperatureController.h"
 #include "Controller/SampleCarrierDataManager.h"
-#include "Controller/ReferenceThermocoupleTemperatureReader.h"
+#include "Controller/ReferenceTemperatureReader.h"
+#include "Controller/ReferenceTemperatureController.h"
+#include "Controller/InertialModel.h"
 
 #include "MasterCommunication/MasterDataManager.h"
 #include "MasterCommunication/MasterDataMemoryManager.h"
@@ -39,16 +42,19 @@
 #include "cmsis_os.h"
 
 static const EThreadId mThreadId = EThreadId_SystemManager;
+static void (*mUnitReadyIndCallback)(EUnitId, bool) = NULL;
 
 static void SystemManager_thread(void const* arg);
 static void setup(void);
 static void createThreads(void);
 static void checkKernelStatus(void);
-static void configurePeripheralsPhaseOne(void);
-static void configurePeripheralsPhaseTwo(void);
-static void configureDevices(void);
-static void configureControllers(void);
+static void conditionalExecutor(bool (*callback)(void), bool* result);
+static bool configurePeripheralsPhaseOne(void);
+static bool configurePeripheralsPhaseTwo(void);
+static bool configureDevices(void);
+static bool configureControllers(void);
 static void initializeCommunicationWithMaster(void);
+static void notifyObserverAboutUnitReadyStatus(EUnitId unitId, bool result);
 static void startThreads(void);
 static const char* getLoggerPrefix(void);
 
@@ -57,6 +63,16 @@ void SystemManager_run(void)
     setup();
     createThreads();
     osKernelStart();
+}
+
+void SystemManager_registerUnitReadyIndCallback(void (*callback)(EUnitId, bool))
+{
+    mUnitReadyIndCallback = callback;
+}
+
+void SystemManager_deregisterUnitReadyIndCallback(void)
+{
+    mUnitReadyIndCallback = NULL;
 }
 
 void setup(void)
@@ -70,16 +86,17 @@ void setup(void)
     Logger_setup();
     SPI2_setup();
     SPI3_setup();
-    TIM3_setup();
     
     ADS1248_setup();
     LMP90100ControlSystem_setup();
     LMP90100SignalsMeasurement_setup();
     MCP4716_setup();
     
+    HeaterTemperatureController_setup();
     HeaterTemperatureReader_setup();
     SampleCarrierDataManager_setup();
-    ReferenceThermocoupleTemperatureReader_setup();
+    ReferenceTemperatureReader_setup();
+    ReferenceTemperatureController_setup();
     
     MasterDataManager_setup();
     MasterDataMemoryManager_setup();
@@ -98,7 +115,7 @@ void createThreads(void)
     THREAD_CREATE(SystemManager, Low, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(HeaterTemperatureReader, Normal, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(SampleCarrierDataManager, Normal, configMINIMAL_STACK_SIZE);
-    THREAD_CREATE(ReferenceThermocoupleTemperatureReader, Low, configMINIMAL_STACK_SIZE);
+    THREAD_CREATE(ReferenceTemperatureReader, Low, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataManager, Low, configNORMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataReceiver, Low, configNORMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataTransmitter, Low, configMAXIMUM_STACK_SIZE);
@@ -109,7 +126,8 @@ void SystemManager_thread(void const* arg)
 {
     Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_DebugSystem);
     initializeCommunicationWithMaster();
-    //Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_Debug);
+    //Logger_setLevel(ELoggerLevel_Debug);
+    //Logger_setType(ELoggerType_EvalCOM1AndMasterMessage);
     
     Logger_info("%s: THREAD STARTED!", getLoggerPrefix());
     
@@ -117,14 +135,24 @@ void SystemManager_thread(void const* arg)
     
     Logger_info("%s: Started configuring device!", getLoggerPrefix());
     
-    configurePeripheralsPhaseOne();
-    configureDevices();
-    configureControllers();
-    startThreads();
-    configurePeripheralsPhaseTwo();
+    bool result = true;
     
-    LED_changeState(ELedState_On);
-    Logger_info("%s: Device CONFIGURED!", getLoggerPrefix());  
+    conditionalExecutor(configurePeripheralsPhaseOne, &result);
+    conditionalExecutor(configureDevices, &result);
+    conditionalExecutor(configureControllers, &result);
+    startThreads();
+    conditionalExecutor(configurePeripheralsPhaseTwo, &result);
+    
+    if (result)
+    {
+        LED_changeState(ELedState_On);
+        Logger_info("%s: Device CONFIGURED!", getLoggerPrefix());
+    }
+    else
+    {
+        LED_changeState(ELedState_Off);
+        Logger_error("%s: Device configuring FAILED!", getLoggerPrefix());
+    }
     
     osDelay(osWaitForever);
 }
@@ -143,14 +171,24 @@ void checkKernelStatus(void)
     }    
 }
 
-void configurePeripheralsPhaseOne(void)
+void conditionalExecutor(bool (*callback)(void), bool* result)
+{
+    if (callback && result && *result)
+    {
+        *result = (*callback)();
+    }
+}
+
+bool configurePeripheralsPhaseOne(void)
 {
     Logger_debug("%s: Configuring peripherals (Phase: 1/2): START.", getLoggerPrefix());
     
+    bool result = true;
+    
     LED_initialize();
-    I2C1_initialize();
-    SPI2_initialize();
-    SPI3_initialize();
+    conditionalExecutor(I2C1_initialize, &result);
+    conditionalExecutor(SPI2_initialize, &result);
+    conditionalExecutor(SPI3_initialize, &result);
     
     if (UART2_isInitialized())
     {
@@ -161,30 +199,64 @@ void configurePeripheralsPhaseOne(void)
         Logger_info("UART2: Not initialized!");
     }
     
-    Logger_debug("%s: Configuring peripherals (Phase: 1/2): DONE!", getLoggerPrefix());
+    if (result)
+    {
+        Logger_debug("%s: Configuring peripherals (Phase: 1/2): DONE!", getLoggerPrefix());
+    }
+    else
+    {
+        Logger_error("%s: Configuring peripherals (Phase: 1/2): FAILURE!", getLoggerPrefix());
+    }
+    
+    return result;
 }
 
-void configurePeripheralsPhaseTwo(void)
+bool configurePeripheralsPhaseTwo(void)
 {
     Logger_debug("%s: Configuring peripherals (Phase: 2/2): START.", getLoggerPrefix());
     
+    //EXTI_initialize(EExtiType_EXTI0);
     //EXTI_initialize(EExtiType_EXTI4);
     //EXTI_initialize(EExtiType_EXTI9_5);
     //EXTI_initialize(EExtiType_EXTI15_10);
     
     Logger_debug("%s: Configuring peripherals (Phase: 2/2): DONE!", getLoggerPrefix());
+    return true;
 }
 
-void configureDevices(void)
+bool configureDevices(void)
 {
     Logger_debug("%s: Configuring devices: START.", getLoggerPrefix());
     
-    //ADS1248_initialize();
-    //LMP90100ControlSystem_initialize();
-    //LMP90100SignalsMeasurement_initialize();
-    //MCP4716_initialize();
+    bool mainResult = true;
+    //bool result = false;
     
-    Logger_debug("%s: Configuring devices: DONE!", getLoggerPrefix());
+    //result = ADS1248_initialize();
+    // mainResult = mainResult && result;
+    //notifyObserverAboutUnitReadyStatus(EUnitId_ADS1248, result);
+    
+    //result = LMP90100ControlSystem_initialize();
+    // mainResult = mainResult && result;
+    //notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100ControlSystem, result);
+    
+    //result = LMP90100SignalsMeasurement_initialize();
+    // mainResult = mainResult && result;
+    //notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100SignalsMeasurement, result);
+    
+    //result = MCP4716_initialize();
+    // mainResult = mainResult && result;
+    //notifyObserverAboutUnitReadyStatus(EUnitId_MCP4716, result);
+    
+    if (mainResult)
+    {
+        Logger_debug("%s: Configuring devices: DONE!", getLoggerPrefix());
+    }
+    else
+    {
+        Logger_error("%s: Configuring devices: FAILURE!", getLoggerPrefix());
+    }
+    
+    return mainResult;
 }
 
 void initializeCommunicationWithMaster(void)
@@ -204,15 +276,28 @@ void initializeCommunicationWithMaster(void)
     SEND_EVENT();
 }
 
-void configureControllers(void)
+void notifyObserverAboutUnitReadyStatus(EUnitId unitId, bool result)
+{
+    if (mUnitReadyIndCallback)
+    {
+        Logger_debug("%s: Notifying observer about unit %s ready status (%s).", getLoggerPrefix(), CStringConverter_EUnitId(unitId), result ? "SUCCESS" : "FAILURE");
+        (*mUnitReadyIndCallback)(unitId, result);
+    }
+}
+
+bool configureControllers(void)
 {
     Logger_debug("%s: Configuring controllers: START.", getLoggerPrefix());\
     
+    HeaterTemperatureController_initialize();
     HeaterTemperatureReader_initialize();
     SampleCarrierDataManager_initialize();
-    ReferenceThermocoupleTemperatureReader_initialize();
+    ReferenceTemperatureReader_initialize();
+    ReferenceTemperatureController_initialize();
     
     Logger_debug("%s: Configuring controllers: DONE!", getLoggerPrefix());
+    
+    return true;
 }
 
 void startThreads(void)
@@ -223,7 +308,7 @@ void startThreads(void)
     KernelManager_startThread(mThreadId, EThreadId_HeaterTemperatureReader);
     KernelManager_startThread(mThreadId, EThreadId_LMP90100ControlSystemController);
     KernelManager_startThread(mThreadId, EThreadId_LMP90100SignalsMeasurementController);
-    KernelManager_startThread(mThreadId, EThreadId_ReferenceThermocoupleTemperatureReader);
+    KernelManager_startThread(mThreadId, EThreadId_ReferenceTemperatureReader);
     KernelManager_startThread(mThreadId, EThreadId_SampleCarrierDataManager);
     KernelManager_startThread(mThreadId, EThreadId_SampleThread);
     

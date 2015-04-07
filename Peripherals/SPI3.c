@@ -38,7 +38,7 @@ void SPI3_setup(void)
     }
 }
 
-void SPI3_initialize(void)
+bool SPI3_initialize(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     
@@ -73,6 +73,8 @@ void SPI3_initialize(void)
     }
     
     osMutexRelease(mMutexId);
+    
+    return mIsInitialized;
 }
 
 void SPI3_uninitialize(void)

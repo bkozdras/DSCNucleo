@@ -6,6 +6,9 @@
 #include "SharedDefines/EFaultId.h"
 #include "SharedDefines/EFaultIndicationState.h"
 #include "SharedDefines/EUnitId.h"
+#include "SharedDefines/EControlSystemType.h"
+#include "SharedDefines/EPid.h"
+#include "SharedDefines/ERegisteringDataType.h"
 
 #include "Peripherals/TypesLed.h"
 #include "Peripherals/TypesExti.h"
@@ -14,6 +17,7 @@
 #include "System/TypesKernel.h"
 #include "SharedDefines/LMP90100Types.h"
 #include "SharedDefines/ADS1248Types.h"
+#include "SharedDefines/SSegmentData.h"
 
 #include "cmsis_os.h"
 
@@ -27,6 +31,7 @@ const char* CStringConverter_EMessageId(EMessageId messageId);
 const char* CStringConverter_EFaultId(EFaultId faultId);
 const char* CStringConverter_EFaultIndicationState(EFaultIndicationState state);
 const char* CStringConverter_EUnitId(EUnitId unitId);
+const char* CStringConverter_ESegmentType(ESegmentType segmentType);
 
 // OTHERS
 
@@ -45,6 +50,10 @@ const char* CStringConverter_EADS1248Mode(EADS1248Mode ads1248Mode);
 const char* CStringConverter_EADS1248CallibrationType(EADS1248CallibrationType ads1248CallibrationType);
 const char* CStringConverter_EADS1248GainValue(EADS1248GainValue ads1248GainValue);
 const char* CStringConverter_EADS1248SamplingSpeed(EADS1248SamplingSpeed ads1248SamplingSpeed);
+
+const char* CStringConverter_EControlSystemType(EControlSystemType controlSystemType);
+const char* CStringConverter_EPid(EPid pid);
+const char* CStringConverter_ERegisteringDataType(ERegisteringDataType registeringDataType);
 
 // CMSIS RTOS
 

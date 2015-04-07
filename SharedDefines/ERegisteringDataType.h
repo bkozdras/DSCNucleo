@@ -7,7 +7,8 @@ typedef enum _ERegisteringDataType
     ERegisteringDataType_All                                = 0,
     ERegisteringDataType_HeaterTemperature                  = 1,
     ERegisteringDataType_SampleCarrierData                  = 2,
-    ERegisteringDataType_ReferenceThermocoupleTemperature   = 3
+    ERegisteringDataType_ReferenceTemperature               = 3,
+    ERegisteringDataType_ControllerData                     = 4
 } ERegisteringDataType;
 
 #endif

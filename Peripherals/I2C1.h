@@ -6,7 +6,7 @@
 #include "Peripherals/TypesI2C.h"
 
 void I2C1_setup(void);
-void I2C1_initialize(void);
+bool I2C1_initialize(void);
 void I2C1_uninitialize(void);
 
 bool I2C1_isDeviceReady(const TI2CDeviceAddress address, const TTimeMs timeout);

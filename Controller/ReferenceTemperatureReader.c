@@ -1,4 +1,4 @@
-#include "Controller/ReferenceThermocoupleTemperatureReader.h"
+#include "Controller/ReferenceTemperatureReader.h"
 
 #include "Defines/CommonDefines.h"
 
@@ -11,7 +11,7 @@
 
 #include "arm_math.h"
 
-THREAD_DEFINES(ReferenceThermocoupleTemperatureReader, ReferenceThermocoupleTemperatureReader)
+THREAD_DEFINES(ReferenceTemperatureReader, ReferenceTemperatureReader)
 EVENT_HANDLER_PROTOTYPE(NewRTDValueInd)
 
 static float mRtdTemperature = 0.0F;
@@ -25,7 +25,7 @@ static void (*mDataReadyCallback)(float) = NULL;
 
 static float convertRTDResistanceToTemperature(float resistance);
     
-THREAD(ReferenceThermocoupleTemperatureReader)
+THREAD(ReferenceTemperatureReader)
 {
     THREAD_SKELETON_START
     
@@ -53,12 +53,12 @@ EVENT_HANDLER(NewRTDValueInd)
     }
 }
 
-void ReferenceThermocoupleTemperatureReader_setup(void)
+void ReferenceTemperatureReader_setup(void)
 {
     THREAD_INITIALIZE_MUTEX
 }
 
-void ReferenceThermocoupleTemperatureReader_initialize(void)
+void ReferenceTemperatureReader_initialize(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     
@@ -69,7 +69,7 @@ void ReferenceThermocoupleTemperatureReader_initialize(void)
     Logger_info("%s: Initialized!", getLoggerPrefix());
 }
 
-float ReferenceThermocoupleTemperatureReader_getTemperature(void)
+float ReferenceTemperatureReader_getTemperature(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     float rtdTemperature = mRtdTemperature;
@@ -77,7 +77,7 @@ float ReferenceThermocoupleTemperatureReader_getTemperature(void)
     return rtdTemperature;
 }
 
-void ReferenceThermocoupleTemperatureReader_registerDataReadyCallback(void (*dataReadyCallback)(float))
+void ReferenceTemperatureReader_registerDataReadyCallback(void (*dataReadyCallback)(float))
 {
     osMutexWait(mMutexId, osWaitForever);
     mDataReadyCallback = dataReadyCallback;
@@ -85,7 +85,7 @@ void ReferenceThermocoupleTemperatureReader_registerDataReadyCallback(void (*dat
     osMutexRelease(mMutexId);
 }
 
-void ReferenceThermocoupleTemperatureReader_deregisterDataReadyCallback(void)
+void ReferenceTemperatureReader_deregisterDataReadyCallback(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     mDataReadyCallback = NULL;

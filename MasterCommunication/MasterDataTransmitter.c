@@ -15,12 +15,12 @@ THREAD_DEFINES(MasterDataTransmitter, MasterDataTransmitter)
 EVENT_HANDLER_PROTOTYPE(DataToMasterTransmittedInd)
 EVENT_HANDLER_PROTOTYPE(TransmitData)
 
-#define MESSAGES_BUFFER_SIZE 15
+#define MESSAGES_BUFFER_SIZE 20
 
 static osMutexDef(mMutexBufferOverflow);
 static osMutexId mMutexBufferOverflowId;
 
-static TMessage mMessagesBuffer [15];
+static TMessage mMessagesBuffer [MESSAGES_BUFFER_SIZE];
 static TMessage* mTransmittingMessage = NULL;
 static u8 mMessagesBufferHead = 0;
 static u8 mMessagesBufferTail = 0;
@@ -62,13 +62,6 @@ EVENT_HANDLER(TransmitData)
     mMessageHeader[5] = ( mTransmittingMessage->crc & 0xFF );
     mMessageHeader[6] = ( ( mTransmittingMessage->crc >> 8 ) & 0xFF );
     mMessageHeader[7] = mTransmittingMessage->length;
-    /*
-    mMessageHeader[3] = '1';
-    mMessageHeader[4] = '2';
-    mMessageHeader[5] = '3';
-    mMessageHeader[6] = '4';
-    mMessageHeader[7] = '5';
-    mMessageHeader[8] = '\n';*/
     
     for (u16 iter = 0; 8 > iter; ++iter)
     {

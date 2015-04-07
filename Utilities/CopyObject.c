@@ -25,3 +25,27 @@ void CopyObject_SSampleCarrierData(SSampleCarrierData* source, SSampleCarrierDat
     }
     dest->rtdTemperatureValue = source->rtdTemperatureValue;
 }
+
+void CopyObject_SPidTunes(SPidTunes* source, SPidTunes* dest)
+{
+    dest->kp = source->kp;
+    dest->td = source->td;
+    dest->ti = source->ti;
+}
+
+void CopyObject_SControllerData(SControllerData* source, SControllerData* dest)
+{
+    dest->CV = source->CV;
+    dest->ERR = source->ERR;
+    dest->PV = source->PV;
+    dest->SP = source->SP;
+}
+
+void CopyObject_SSegmentData(SSegmentData* source, SSegmentData* dest)
+{
+    dest->number = source->number;
+    dest->settingTimeInterval = source->settingTimeInterval;
+    dest->startTemperature = source->startTemperature;
+    dest->stopTemperature = source->stopTemperature;
+    dest->type = source->type;
+}

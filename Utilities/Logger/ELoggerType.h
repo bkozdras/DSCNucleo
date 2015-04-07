@@ -5,8 +5,8 @@
 typedef enum _ELoggerType
 {
     ELoggerType_EvalCOM1,
-	ELoggerType_ATCommand,
-    ELoggerType_EvalCOM1AndATCommand,
+    ELoggerType_MasterMessage,
+    ELoggerType_EvalCOM1AndMasterMessage,
     ELoggerType_Off
 } ELoggerType;
 

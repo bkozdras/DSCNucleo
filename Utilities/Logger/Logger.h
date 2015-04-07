@@ -2,6 +2,7 @@
 
 #define _LOGGER_H_
 
+#include "SharedDefines/MessagesDefines.h"
 #include "Utilities/Logger/TypesLogger.h"
 #include "Utilities/Printer/CStringConverter.h"
 #include "stdbool.h"
@@ -13,6 +14,8 @@ void Logger_setType(ELoggerType loggerType);
 void Logger_setLevel(ELoggerLevel loggerLevel);
 
 bool Logger_isInitialized(void);
+void Logger_registerMasterMessageLogIndCallback(void (*callback)(TLogInd*));
+void Logger_deregisterMasterMessageLogIndCallback(void);
 
 void Logger_debugSystem(const char* format, ...);
 void Logger_debug(const char* format, ...);

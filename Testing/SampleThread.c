@@ -20,7 +20,6 @@
 #include "SharedDefines/SFaultIndication.h"
 #include "SharedDefines/MessagesDefines.h"
 
-#include "Peripherals/TIM3.h"
 #include "System/ThreadMacros.h"
 #include "cmsis_os.h"
 
@@ -29,8 +28,6 @@ static bool mIsThreadNotTerminated = true;
 
 //static void testMCP4716(void);
 static const char* getLoggerPrefix(void);
-
-static void timer(void);
 
 void SampleThread_thread(void const* arg)
 {
@@ -53,10 +50,6 @@ void SampleThread_thread(void const* arg)
     */
     
     osDelay(2000);
-    
-    TIM3_registerPeriodElapsedCallback(timer);
-    TIM3_setPeriod(1000);
-    TIM3_start();
     
     while (mIsThreadNotTerminated)
     {
@@ -125,12 +118,6 @@ void testMCP4716(void)
     
     Logger_debug("%s: Testing MCP4716: DONE!", getLoggerPrefix());
 }*/
-
-void timer(void)
-{
-    CREATE_EVENT_ISR(DataToMasterTransmittedInd, mThreadId);
-    SEND_EVENT();
-}
 
 const char* getLoggerPrefix(void)
 {

@@ -11,7 +11,7 @@
 THREAD_PROTOTYPE(LMP90100SignalsMeasurementController)
 
 void LMP90100SignalsMeasurement_setup(void);
-void LMP90100SignalsMeasurement_initialize(void);
+bool LMP90100SignalsMeasurement_initialize(void);
 bool LMP90100SignalsMeasurement_isInitialized(void);
 
 bool LMP90100SignalsMeasurement_changeMode(ELMP90100Mode newMode);

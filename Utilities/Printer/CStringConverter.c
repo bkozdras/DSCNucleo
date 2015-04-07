@@ -29,8 +29,8 @@ const char* CStringConverter_EMessageId(EMessageId messageId)
         case EMessageId_LogInd :
             return "LogInd";
         
-        case EMessageId_ReferenceThermocoupleTemperatureInd :
-            return "ReferenceThermocoupleTemperatureInd";
+        case EMessageId_ReferenceTemperatureInd :
+            return "ReferenceTemperatureInd";
         
         case EMessageId_RegisterNewSegmentToProgramRequest :
             return "RegisterNewSegmentToProgramRequest";
@@ -134,6 +134,36 @@ const char* CStringConverter_EMessageId(EMessageId messageId)
         case EMessageId_StopRegisteringDataResponse :
             return "StopRegisteringDataResponse";
         
+        case EMessageId_SetControllingAlgorithmExecutionPeriodRequest :
+            return "SetControllingAlgorithmExecutionPeriodRequest";
+        
+        case EMessageId_SetControllingAlgorithmExecutionPeriodResponse :
+            return "SetControllingAlgorithmExecutionPeriodResponse";
+        
+        case EMessageId_ControllerDataInd :
+            return "ControllerDataInd";
+        
+        case EMessageId_SegmentsProgramDoneInd :
+            return "SegmentsProgramDoneInd";
+        
+        case EMessageId_DeregisterSegmentFromProgramRequest :
+            return "DeregisterSegmentFromProgramRequest";
+        
+        case EMessageId_DeregisterSegmentFromProgramResponse :
+            return "DeregisterSegmentFromProgramResponse";
+        
+        case EMessageId_StartSegmentProgramRequest :
+            return "StartSegmentProgramRequest";
+        
+        case EMessageId_StartSegmentProgramResponse :
+            return "StartSegmentProgramResponse";
+        
+        case EMessageId_StopSegmentProgramRequest :
+            return "StopSegmentProgramRequest";
+        
+        case EMessageId_StopSegmentProgramResponse :
+            return "StopSegmentProgramResponse";
+        
         case EMessageId_Unknown :
             return "Unknown";
     }
@@ -174,6 +204,9 @@ const char* CStringConverter_EFaultId(EFaultId faultId)
         
         case EFaultId_CRCFailure :
             return "CRCFailure";
+        
+        case EFaultId_OverCurrent :
+            return "OverCurrent";
     }
     
     return "Unknown EFaultId";
@@ -212,6 +245,9 @@ const char* CStringConverter_EUnitId(EUnitId unitId)
         case EUnitId_MCP4716 :
             return "MCP4716";
         
+        case EUnitId_DRV595 :
+            return "DRV595";
+        
         case EUnitId_RtdPt1000 :
             return "RTD Pt1000";
         
@@ -236,6 +272,9 @@ const char* CStringConverter_EUnitId(EUnitId unitId)
         case EUnitId_Thermocouple4 :
             return "Thermocouple 4";
 
+        case EUnitId_Peltier :
+            return "Peltier";
+        
         case EUnitId_Empty :
             return "Empty";
         
@@ -247,6 +286,20 @@ const char* CStringConverter_EUnitId(EUnitId unitId)
     }
     
     return "Unknown EFaultId";
+}
+
+const char* CStringConverter_ESegmentType(ESegmentType segmentType)
+{
+    switch (segmentType)
+    {
+        case ESegmentType_Dynamic :
+            return "Dynamic";
+        
+        case ESegmentType_Static :
+            return "Static";
+    }
+    
+    return "Unknown ESegmentType";
 }
 
 // OTHERS
@@ -321,11 +374,11 @@ const char* CStringConverter_ELoggerType(ELoggerType loggerType)
         case ELoggerType_EvalCOM1 :
             return "EvalCOM1";
         
-        case ELoggerType_ATCommand :
-            return "ATCommand";
+        case ELoggerType_MasterMessage :
+            return "Master Message";
         
-        case ELoggerType_EvalCOM1AndATCommand :
-            return "EvalCOM1_ATCommand";
+        case ELoggerType_EvalCOM1AndMasterMessage :
+            return "EvalCOM1 and Master Message";
         
         case ELoggerType_Off :
             return "Off";
@@ -418,8 +471,8 @@ const char* CStringConverter_EThreadId(EThreadId threadId)
         case EThreadId_SampleCarrierDataManager :
             return "SampleCarrierDataManager";
         
-        case EThreadId_ReferenceThermocoupleTemperatureReader :
-            return "ReferenceThermcoupleTemperatureReader";
+        case EThreadId_ReferenceTemperatureReader :
+            return "ReferenceTemperatureReader";
         
         case EThreadId_MasterDataManager :
             return "MasterDataManager";
@@ -591,6 +644,60 @@ const char* CStringConverter_EADS1248SamplingSpeed(EADS1248SamplingSpeed ads1248
     }
     
     return "Unknown EADS1248SamplingSpeed";
+}
+
+const char* CStringConverter_EControlSystemType(EControlSystemType controlSystemType)
+{
+    switch (controlSystemType)
+    {
+        case EControlSystemType_MFCFeedback :
+            return "MFC Feedback";
+        
+        case EControlSystemType_SimpleFeedback :
+            return "Simple Feedback";
+        
+        case EControlSystemType_OpenLoop :
+            return "Open Loop";
+    }
+    
+    return "Unknown EControlSystemType";
+}
+
+const char* CStringConverter_EPid(EPid pid)
+{
+    switch (pid)
+    {
+        case EPid_ModelController :
+            return "Model Controller";
+        
+        case EPid_ProcessController :
+            return "Process Controler";
+    }
+    
+    return "Unknown EPid";
+}
+
+const char* CStringConverter_ERegisteringDataType(ERegisteringDataType registeringDataType)
+{
+    switch (registeringDataType)
+    {
+        case ERegisteringDataType_All :
+            return "All Types";
+        
+        case ERegisteringDataType_HeaterTemperature :
+            return "Heater Temperature";
+        
+        case ERegisteringDataType_ReferenceTemperature :
+            return "Reference Temperature";
+        
+        case ERegisteringDataType_SampleCarrierData :
+            return "Sample Carrier Data";
+        
+        case ERegisteringDataType_ControllerData :
+            return "Controller Data";
+    }
+    
+    return "Unknown ERegisteringDataType";
 }
 
 const char* CStringConverter_osStatus(osStatus status)

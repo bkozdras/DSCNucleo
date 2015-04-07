@@ -165,8 +165,10 @@ void ADS1248_setup(void)
     initializeGpio();
 }
 
-void ADS1248_initialize(void)
+bool ADS1248_initialize(void)
 {
+    bool result = false;
+    
     Logger_debug("%s: Device initialization.", getLoggerPrefix());
     
     if (!SPI3_isInitialized())
@@ -177,13 +179,26 @@ void ADS1248_initialize(void)
     EXTI_setCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN), dataReadyCallback);
     assertRESET();
     deassertSTART();
-    configureRegisters();
-    turnOffDevice();
-    mIsInitialized = true;
+    
+    result = configureRegisters();
+    if (result)
+    {
+        result = turnOffDevice();
+    }
+    
+    if (result)
+    {
+        mIsInitialized = true;
+        Logger_info("%s: Device initialized!", getLoggerPrefix());
+    }
+    else
+    {
+        Logger_error("%s: Device initialization failure!", getLoggerPrefix());
+    }
     
     osMutexRelease(mMutexId);
     
-    Logger_info("%s: Device initialized!", getLoggerPrefix());
+    return result;
 }
 
 bool ADS1248_isInitialized(void)

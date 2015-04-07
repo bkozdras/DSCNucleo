@@ -46,7 +46,7 @@ static void notifyObserverAboutNewRTDValue(void);
 
 static bool transmitData(const TByte firstRegisterAddress, const TByte* data, const u8 dataLength, const TTimeMs timeout);
 static bool receiveData(const TByte firstRegisterAddress, TByte* receivedData, const u8 dataLength, const TTimeMs timeout);
-//static bool transmitByteAndValidate(const TByte registerAddress, const TByte data);
+static bool transmitByteAndValidate(const TByte registerAddress, const TByte data);
 static bool verifyCrcByte(const TByte crcByte, TByte* readAdcData, const u8 adcDataLength);
 static void assertCSB(void);
 static void deassertCSB(void);
@@ -104,26 +104,34 @@ void LMP90100ControlSystem_setup(void)
     initializeGpio();
 }
 
-void LMP90100ControlSystem_initialize(void)
+bool LMP90100ControlSystem_initialize(void)
 {
     Logger_debug("%s: Device initialization.", getLoggerPrefix());
     
     if (!SPI2_isInitialized())
     {
-        Logger_warning("%s: Initialization failed. SPI2 is not initialized!", getLoggerPrefix());
-        return;
+        SPI2_initialize();
     }
     
     osMutexWait(mMutexId, osWaitForever);
     
     EXTI_setCallback(GET_GPIO_PIN(LMP90100_CONTROL_SYSTEM_DRDYB_PIN), dataReadyCallback);
     //configureRegisters();
-    turnOffDevice();
-    mIsInitialized = true;
+    bool result = turnOffDevice();
     
     osMutexRelease(mMutexId);
     
-    Logger_info("%s: Device initialized!", getLoggerPrefix());
+    if (result)
+    {
+        mIsInitialized = true;
+        Logger_info("%s: Device initialized!", getLoggerPrefix());
+    }
+    else
+    {
+        Logger_error("%s: Device initialization failed!", getLoggerPrefix());
+    }
+    
+    return result;
 }
 
 bool LMP90100ControlSystem_isInitialized(void)
@@ -210,7 +218,7 @@ void initializeGpio(void)
     
     // DRDYB
     
-    GPIO_CLOCK_ENABLE(B);
+    GPIO_CLOCK_ENABLE(LMP90100_CONTROL_SYSTEM_DRDYB_PORT);
 
     GPIO_InitStruct.Pin = GET_GPIO_PIN(LMP90100_CONTROL_SYSTEM_DRDYB_PIN);
     GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
@@ -337,7 +345,8 @@ bool turnOffDevice(void)
     TByte writeData = LMP90100_REG_PWRCN_DEFAULT;
     writeData |= LMP90100_PWRCN_STAND_BY_MODE;
     
-    if (transmitData(LMP90100_REG_PWRCN, &writeData, 1, 100))
+    //if (transmitData(LMP90100_REG_PWRCN, &writeData, 1, 100))
+    if (transmitByteAndValidate(LMP90100_REG_PWRCN, writeData))
     {
         Logger_info("%s: Device is in STAND-BY state!", getLoggerPrefix());
         return true;
@@ -498,7 +507,7 @@ bool receiveData(const TByte firstRegisterAddress, TByte* receivedData, const u8
     
     return true;
 }
-/*
+
 bool transmitByteAndValidate(const TByte registerAddress, const TByte data)
 {
     if (!transmitData(registerAddress, &data, 1, 100))
@@ -523,7 +532,7 @@ bool transmitByteAndValidate(const TByte registerAddress, const TByte data)
     
     return true;
 }
-*/
+
 bool verifyCrcByte(const TByte crcByte, TByte* readAdcData, const u8 adcDataLength)
 {
     // CRC-8: x8 + x5 + x4 + 1

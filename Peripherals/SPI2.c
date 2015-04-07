@@ -30,7 +30,7 @@ void SPI2_setup(void)
     }
 }
 
-void SPI2_initialize(void)
+bool SPI2_initialize(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     
@@ -65,6 +65,8 @@ void SPI2_initialize(void)
     }
     
     osMutexRelease(mMutexId);
+    
+    return mIsInitialized;
 }
 
 void SPI2_uninitialize(void)
