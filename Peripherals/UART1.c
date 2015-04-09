@@ -80,7 +80,7 @@ bool UART1_transmit(TByte* data, const u16 dataLength)
         Logger_debugSystem("UART1: Transmitted %u bytes:", dataLength);
         for (u16 iter = 0; dataLength > iter; ++iter)
         {
-            Logger_debugSystem("UART1: Byte[%u]: 0x%02X.", iter, data[iter]);
+            //Logger_debugSystemMasterDataExtended("UART1: Byte[%u]: 0x%02X.", iter, data[iter]);
         }
         
         return true;

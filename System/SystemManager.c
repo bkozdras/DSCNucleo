@@ -128,7 +128,7 @@ void SystemManager_thread(void const* arg)
 {
     Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_DebugSystem);
     initializeCommunicationWithMaster();
-    Logger_setLevel(ELoggerLevel_Debug);
+    //Logger_setLevel(ELoggerLevel_Debug);
     Logger_setType(ELoggerType_EvalCOM1AndMasterMessage);
     
     Logger_info("%s: THREAD STARTED!", getLoggerPrefix());

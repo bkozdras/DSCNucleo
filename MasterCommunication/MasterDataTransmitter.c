@@ -15,7 +15,7 @@ THREAD_DEFINES(MasterDataTransmitter, MasterDataTransmitter)
 EVENT_HANDLER_PROTOTYPE(DataToMasterTransmittedInd)
 EVENT_HANDLER_PROTOTYPE(TransmitData)
 
-#define MESSAGES_BUFFER_SIZE 20
+#define MESSAGES_BUFFER_SIZE 100
 
 static osMutexDef(mMutexBufferOverflow);
 static osMutexId mMutexBufferOverflowId;
@@ -24,6 +24,7 @@ static TMessage mMessagesBuffer [MESSAGES_BUFFER_SIZE];
 static TMessage* mTransmittingMessage = NULL;
 static u8 mMessagesBufferHead = 0;
 static u8 mMessagesBufferTail = 0;
+static u8 mNumberOfWaitingMessagesInBuffer = 0;
 static bool mIsTransmittionOngoing = false;
 static EMessagePart mTransmittingMessagePart = EMessagePart_Header;
 static TByte mMessageHeader [8];
@@ -47,6 +48,7 @@ EVENT_HANDLER(TransmitData)
     osMutexWait(mMutexBufferOverflowId, osWaitForever);
     
     mMessagesBufferHead = getNextBufferIndex(mMessagesBufferHead);
+    --mNumberOfWaitingMessagesInBuffer;
     
     Logger_debugSystem("%s: Processing with message from TX buffer: %u.", getLoggerPrefix(), mMessagesBufferHead);
     
@@ -65,7 +67,7 @@ EVENT_HANDLER(TransmitData)
     
     for (u16 iter = 0; 8 > iter; ++iter)
     {
-        Logger_debugSystem("%s: Header byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mMessageHeader[iter]);
+        Logger_debugSystemMasterDataExtended("%s: Header byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mMessageHeader[iter]);
     }
     
     if (!UART1_transmit(mMessageHeader, 8))
@@ -88,7 +90,7 @@ EVENT_HANDLER(DataToMasterTransmittedInd)
             
             for (u16 iter = 0; mTransmittingMessage->length > iter; ++iter)
             {
-                Logger_debugSystem("%s: Data byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mTransmittingMessage->data[iter]);
+                Logger_debugSystemMasterDataExtended("%s: Data byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mTransmittingMessage->data[iter]);
             }
             
             if (!UART1_transmit(mTransmittingMessage->data, mTransmittingMessage->length))
@@ -114,7 +116,7 @@ EVENT_HANDLER(DataToMasterTransmittedInd)
             
             for (u16 iter = 0; 4 > iter; ++iter)
             {
-                Logger_debugSystem("%s: End byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mMessageEnd[iter]);
+                Logger_debugSystemMasterDataExtended("%s: End byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mMessageEnd[iter]);
             }
             
             if (!UART1_transmit(mMessageEnd, 4))
@@ -147,9 +149,10 @@ EVENT_HANDLER(DataToMasterTransmittedInd)
             {
                 Logger_debugSystem
                 (
-                    "%s: Transmitting message done (Message: %s). New message found in TX buffer.",
+                    "%s: Transmitting message done (Message: %s). New message found in TX buffer. Messages waiting count: %u.",
                     getLoggerPrefix(),
-                    CStringConverter_EMessageId(mTransmittingMessage->id)
+                    CStringConverter_EMessageId(mTransmittingMessage->id),
+                    mNumberOfWaitingMessagesInBuffer
                 );
                 
                 CREATE_EVENT_ISR(TransmitData, mThreadId);
@@ -195,7 +198,8 @@ void MasterDataTransmitter_transmitAsync(TMessage* message)
     
     CopyObject_TMessage(message, &(mMessagesBuffer[nextTail]));
     mMessagesBufferTail = nextTail;
-    Logger_debugSystem("%s: Copied message to TX buffer. Position: %u.", getLoggerPrefix(), mMessagesBufferTail);
+    ++mNumberOfWaitingMessagesInBuffer;
+    Logger_debugSystem("%s: Copied message to TX buffer. Position: %u. Messages waiting count: %u.", getLoggerPrefix(), mMessagesBufferTail, mNumberOfWaitingMessagesInBuffer);
     
     if (!mIsTransmittionOngoing)
     {

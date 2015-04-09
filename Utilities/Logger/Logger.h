@@ -18,6 +18,7 @@ void Logger_registerMasterMessageLogIndCallback(void (*callback)(TLogInd*));
 void Logger_deregisterMasterMessageLogIndCallback(void);
 
 void Logger_debugSystem(const char* format, ...);
+void Logger_debugSystemMasterDataExtended(const char* format, ...);
 void Logger_debug(const char* format, ...);
 void Logger_info(const char* format, ...);
 void Logger_warning(const char* format, ...);
