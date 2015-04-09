@@ -115,9 +115,9 @@ void createThreads(void)
     THREAD_CREATE(LMP90100ControlSystemController, High, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(LMP90100SignalsMeasurementController, Realtime, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(SystemManager, Low, configMINIMAL_STACK_SIZE);
-    THREAD_CREATE(HeaterTemperatureReader, Normal, configMINIMAL_STACK_SIZE);
-    THREAD_CREATE(SampleCarrierDataManager, Normal, configMINIMAL_STACK_SIZE);
-    THREAD_CREATE(ReferenceTemperatureReader, Low, configMINIMAL_STACK_SIZE);
+    THREAD_CREATE(HeaterTemperatureReader, AboveNormal, configMINIMAL_STACK_SIZE);
+    THREAD_CREATE(SampleCarrierDataManager, AboveNormal, configMINIMAL_STACK_SIZE);
+    THREAD_CREATE(ReferenceTemperatureReader, Normal, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataManager, Low, configNORMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataReceiver, Normal, configNORMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataTransmitter, Low, configMAXIMUM_STACK_SIZE);
