@@ -173,11 +173,11 @@ void MasterDataTransmitter_initialize(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     UART1_registerDataTransmittingDoneCallback(dataTransmittedCallback);
-    Logger_debug("%s: Initialized!", getLoggerPrefix());
+    Logger_debugSystem("%s: Initialized!", getLoggerPrefix());
     osMutexRelease(mMutexId);
 }
 
-void MasterDataTransmitter_transmit(TMessage* message)
+void MasterDataTransmitter_transmitAsync(TMessage* message)
 {
     osMutexWait(mMutexId, osWaitForever);
     

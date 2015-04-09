@@ -109,7 +109,7 @@ bool SPI2_transmit(const TByte* data, const u8 dataLength, const TTimeMs timeout
             Logger_debug("%s: Transmitted %u bytes:", getLoggerPrefix(), dataLength);
             for (u8 iter = 0; dataLength > iter; ++iter)
             {
-                Logger_debug("%s: Byte[%u]: 0x%02X.", getLoggerPrefix(), iter, data[iter]);
+                Logger_debugSystem("%s: Byte[%u]: 0x%02X.", getLoggerPrefix(), iter, data[iter]);
             }
             result = true;
         }
@@ -148,7 +148,7 @@ bool SPI2_receive(TByte* dataBuffer, const u8 dataLength, const TTimeMs timeout)
             Logger_debug("%s: Received %u bytes:", getLoggerPrefix(), dataLength);
             for (u8 iter = 0; dataLength > iter; ++iter)
             {
-                Logger_debug("%s: Byte[%u]: 0x%02X.", getLoggerPrefix(), iter, dataBuffer[iter]);
+                Logger_debugSystem("%s: Byte[%u]: 0x%02X.", getLoggerPrefix(), iter, dataBuffer[iter]);
             }
             result = true;
         }
@@ -187,7 +187,7 @@ bool SPI2_transmitReceive(const TByte* dataToSend, TByte* dataToReceive, const u
             Logger_debug("%s: Sent and received %u bytes:", getLoggerPrefix(), dataLength);
             for (u8 iter = 0; dataLength > iter; ++iter)
             {
-                Logger_debug("%s: Byte[%u]: Sent[0x%02X] Received[0x%02X].", getLoggerPrefix(), iter, dataToSend[iter], dataToReceive[iter]);
+                Logger_debugSystem("%s: Byte[%u]: Sent[0x%02X] Received[0x%02X].", getLoggerPrefix(), iter, dataToSend[iter], dataToReceive[iter]);
             }
             result = true;
         }

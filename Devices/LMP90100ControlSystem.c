@@ -345,7 +345,6 @@ bool turnOffDevice(void)
     TByte writeData = LMP90100_REG_PWRCN_DEFAULT;
     writeData |= LMP90100_PWRCN_STAND_BY_MODE;
     
-    //if (transmitData(LMP90100_REG_PWRCN, &writeData, 1, 100))
     if (transmitByteAndValidate(LMP90100_REG_PWRCN, writeData))
     {
         Logger_info("%s: Device is in STAND-BY state!", getLoggerPrefix());

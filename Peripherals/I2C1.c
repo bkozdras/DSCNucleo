@@ -130,7 +130,7 @@ bool I2C1_transmit(const TI2CDeviceAddress address, const TByte* data, const u8 
             Logger_debug("%s: Transmitted %u bytes to device: 0x%02X.", getLoggerPrefix(), dataLength, address);
             for (u8 iter = 0; dataLength > iter; ++iter)
             {
-                Logger_debug("%s: Byte[%u]: 0x%02X.", getLoggerPrefix(), iter, data[iter]);
+                Logger_debugSystem("%s: Byte[%u]: 0x%02X.", getLoggerPrefix(), iter, data[iter]);
             }
             result = true;
         }
@@ -170,7 +170,7 @@ bool I2C1_receive(const TI2CDeviceAddress address, TByte* dataBuffer, const u8 d
             Logger_debug("%s: Received %u bytes from device: 0x%02X.", getLoggerPrefix(), dataLength, address);
             for (u8 iter = 0; dataLength > iter; ++iter)
             {
-                Logger_debug("%s: Byte[%u]: 0x%02X.", getLoggerPrefix(), iter, dataBuffer[iter]);
+                Logger_debugSystem("%s: Byte[%u]: 0x%02X.", getLoggerPrefix(), iter, dataBuffer[iter]);
             }
             result = true;
         }

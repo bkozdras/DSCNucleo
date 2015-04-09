@@ -224,6 +224,14 @@ bool SegmentsManager_deregisterSegment(u16 number)
     return result;
 }
 
+u16 SegmentsManager_getNumberOfRegisteredSegments(void)
+{
+    osMutexWait(mMutexId, osWaitForever);
+    u16 numberOfRegisteredSegments = mNumberOfRegisteredSegments;
+    osMutexRelease(mMutexId);
+    return numberOfRegisteredSegments;
+}
+
 void SegmentsManager_registerSegmentStartedIndCallback(void (*callback)(u16))
 {
     osMutexWait(mMutexId, osWaitForever);
@@ -561,6 +569,11 @@ bool startProgram(void)
     {
         mIsProgramRunning = true;
         HeaterTemperatureController_setSystemType(EControlSystemType_SimpleFeedback);
+        if (!HeaterTemperatureController_start())
+        {
+            Logger_error("%s: Failure during starting heater temperature controller. Segments program not started.", getLoggerPrefix());
+            return false;
+        }
         Logger_info("%s: Starting segment program. Number of registered segments: %u.", mNumberOfRegisteredSegments);
         if (ESegmentType_Dynamic == mFirstSegmentInChain->data.type)
         {
@@ -596,6 +609,11 @@ bool stopProgram(void)
     {
         mIsProgramRunning = false;
         mFirstSegmentInChain->isInProgress = false;
+        if (!HeaterTemperatureController_stop())
+        {
+            Logger_error("%s: Failure during stopping heater temperature controller. Segments program not stopped.", getLoggerPrefix());
+            return false;
+        }
         HeaterTemperatureController_setSystemType(EControlSystemType_OpenLoop);
         Logger_warning
         (

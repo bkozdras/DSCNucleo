@@ -78,7 +78,7 @@ static void sampleCarrierDataIndCallback(SSampleCarrierData* sampleCarrierData);
 static void heaterTemperatureIndCallback(float temperature);
 static void referenceTemperatureIndCallback(float temperature);
 static void controllerDataIndCallback(SControllerData* controllerData);
-static void segmentStartedInd(u8 segmentNumber);
+static void segmentStartedInd(u16 segmentNumber);
 static void segmentsProgramDoneInd(u16 realizedSegmentsCount, u16 lastSegmentDoneNumber);
 static void unitReadyIndCallback(EUnitId unitId, bool status);
 
@@ -113,13 +113,11 @@ void MasterDataManager_initialize(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     
-    //HeaterTemperatureController_registerNewControllerDataCallback(controllerDataIndCallback);
-    //HeaterTemperatureReader_registerNewTemperatureValueCallback(heaterTemperatureIndCallback);
-    //ReferenceTemperatureReader_registerDataReadyCallback(referenceTemperatureIndCallback);
-    //SampleCarrierDataManager_registerDataReadyCallback(sampleCarrierDataIndCallback);
-    //FaultIndication_registerNewFaultCallback(faultIndCallback);
-    //SystemManager_registerUnitReadyIndCallback(unitReadyIndCallback);
-    //Logger_registerMasterMessageLogIndCallback(logIndCallback);
+    FaultIndication_registerNewFaultCallback(faultIndCallback);
+    SystemManager_registerUnitReadyIndCallback(unitReadyIndCallback);
+    Logger_registerMasterMessageLogIndCallback(logIndCallback);
+    SegmentsManager_registerSegmentsProgramDoneIndCallback(segmentsProgramDoneInd);
+    SegmentsManager_registerSegmentStartedIndCallback(segmentStartedInd);
     
     Logger_info("%s: Initialized!", getLoggerPrefix());
     osMutexRelease(mMutexId);
@@ -178,32 +176,79 @@ void handleResetUnitRequest(TResetUnitRequest* request)
 void handleSetHeaterPowerRequest(TSetHeaterPowerRequest* request)
 {
     TSetHeaterPowerResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetHeaterPowerResponse);
-    
+    response->power = request->power;
+    response->success = HeaterTemperatureController_setPower(request->power);
     MasterUartGateway_sendMessage(EMessageId_SetHeaterPowerResponse, response);
 }
 
 void handleCallibreADS1248Request(TCallibreADS1248Request* request)
 {
-    
+    if (!ADS1248_startCallibration(request->callibrationType, callibreADS1248ResponseCallback))
+    {
+        TCallibreADS1248Response* response = MasterDataMemoryManager_allocate(EMessageId_CallibreADS1248Response);
+        response->callibrationType = request->callibrationType;
+        response->success = false;
+    }
 }
 
 void handleSetChannelGainADS1248Request(TSetChannelGainADS1248Request* request)
 {
     TSetChannelGainADS1248Response* response = MasterDataMemoryManager_allocate(EMessageId_SetChannelGainADS1248Response);
-    
+    response->value = request->value;
+    response->success = ADS1248_setChannelGain(request->value);
     MasterUartGateway_sendMessage(EMessageId_SetChannelGainADS1248Response, response);
 }
 
 void handleSetChannelSamplingSpeedADS1248Request(TSetChannelSamplingSpeedADS1248Request* request)
 {
     TSetChannelSamplingSpeedADS1248Response* response = MasterDataMemoryManager_allocate(EMessageId_SetChannelSamplingSpeedADS1248Response);
-    
+    response->value = request->value;
+    response->success = ADS1248_setChannelSamplingSpeed(request->value);
     MasterUartGateway_sendMessage(EMessageId_SetChannelSamplingSpeedADS1248Response, response);
 }
 
 void handleStartRegisteringDataRequest(TStartRegisteringDataRequest* request)
 {
     TStartRegisteringDataResponse* response = MasterDataMemoryManager_allocate(EMessageId_StartRegisteringDataResponse);
+    
+    response->dataType = request->dataType;
+    response->success = true;
+    
+    switch(request->dataType)
+    {
+        case ERegisteringDataType_ControllerData :
+        {   
+            HeaterTemperatureController_registerNewControllerDataCallback(controllerDataIndCallback);
+            break;
+        }
+        
+        case ERegisteringDataType_HeaterTemperature :
+        {
+            HeaterTemperatureReader_registerNewTemperatureValueCallback(heaterTemperatureIndCallback);
+            break;
+        }
+        
+        case ERegisteringDataType_ReferenceTemperature :
+        {
+            ReferenceTemperatureReader_registerDataReadyCallback(referenceTemperatureIndCallback);
+            break;
+        }
+        
+        case ERegisteringDataType_SampleCarrierData :
+        {
+            SampleCarrierDataManager_registerDataReadyCallback(sampleCarrierDataIndCallback);
+            break;
+        }
+        
+        case ERegisteringDataType_All :
+        {
+            HeaterTemperatureController_registerNewControllerDataCallback(controllerDataIndCallback);
+            HeaterTemperatureReader_registerNewTemperatureValueCallback(heaterTemperatureIndCallback);
+            ReferenceTemperatureReader_registerDataReadyCallback(referenceTemperatureIndCallback);
+            SampleCarrierDataManager_registerDataReadyCallback(sampleCarrierDataIndCallback);
+            break;
+        }
+    }
     
     MasterUartGateway_sendMessage(EMessageId_StartRegisteringDataResponse, response);
 }
@@ -212,12 +257,54 @@ void handleStopRegisteringDataRequest(TStopRegisteringDataRequest* request)
 {
     TStopRegisteringDataResponse* response = MasterDataMemoryManager_allocate(EMessageId_StopRegisteringDataResponse);
     
+    response->dataType = request->dataType;
+    response->success = true;
+    
+    switch(request->dataType)
+    {
+        case ERegisteringDataType_ControllerData :
+        {   
+            HeaterTemperatureController_deregisterNewControllerDataCallback();
+            break;
+        }
+        
+        case ERegisteringDataType_HeaterTemperature :
+        {
+            HeaterTemperatureReader_deregisterNewTemperatureValueCallback();
+            break;
+        }
+        
+        case ERegisteringDataType_ReferenceTemperature :
+        {
+            ReferenceTemperatureReader_deregisterDataReadyCallback();
+            break;
+        }
+        
+        case ERegisteringDataType_SampleCarrierData :
+        {
+            SampleCarrierDataManager_deregisterDataReadyCallback();
+            break;
+        }
+        
+        case ERegisteringDataType_All :
+        {
+            HeaterTemperatureController_deregisterNewControllerDataCallback();
+            HeaterTemperatureReader_deregisterNewTemperatureValueCallback();
+            ReferenceTemperatureReader_deregisterDataReadyCallback();
+            SampleCarrierDataManager_deregisterDataReadyCallback();
+            break;
+        }
+    }
+    
     MasterUartGateway_sendMessage(EMessageId_StopRegisteringDataResponse, response);
 }
 
 void handleSetNewDeviceModeLMP90100ControlSystemRequest(TSetNewDeviceModeLMP90100ControlSystemRequest* request)
 {
     TSetNewDeviceModeLMP90100ControlSystemResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetNewDeviceModeLMP90100ControlSystemResponse);
+    
+    response->mode = request->mode;
+    response->success = LMP90100ControlSystem_changeMode(request->mode);
     
     MasterUartGateway_sendMessage(EMessageId_SetNewDeviceModeLMP90100ControlSystemResponse, response);
 }
@@ -226,6 +313,9 @@ void handleSetNewDeviceModeLMP90100SignalsMeasurementRequest(TSetNewDeviceModeLM
 {
     TSetNewDeviceModeLMP90100SignalsMeasurementResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetNewDeviceModeLMP90100SignalsMeasurementResponse);
     
+    response->mode = request->mode;
+    response->success = LMP90100SignalsMeasurement_changeMode(request->mode);
+    
     MasterUartGateway_sendMessage(EMessageId_SetNewDeviceModeLMP90100SignalsMeasurementResponse, response);
 }
 
@@ -233,12 +323,18 @@ void handleSetControlSystemTypeRequest(TSetControlSystemTypeRequest* request)
 {
     TSetControlSystemTypeResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetControlSystemTypeResponse);
     
+    response->type = request->type;
+    response->success = HeaterTemperatureController_setSystemType(request->type);
+    
     MasterUartGateway_sendMessage(EMessageId_SetControlSystemTypeResponse, response);
 }
 
 void handleSetControllerTunesRequest(TSetControllerTunesRequest* request)
 {
-    TResetUnitResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetControllerTunesResponse);
+    TSetControllerTunesResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetControllerTunesResponse);
+    
+    response->pid = request->pid;
+    response->success = HeaterTemperatureController_setTunes(request->pid, &(request->tunes));
     
     MasterUartGateway_sendMessage(EMessageId_SetControllerTunesResponse, response);
 }
@@ -247,12 +343,18 @@ void handleSetProcessModelParametersRequest(TSetProcessModelParametersRequest* r
 {
     TSetProcessModelParametersResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetProcessModelParametersResponse);
     
+    response->parameters = request->parameters;
+    response->success = HeaterTemperatureController_setProcessModelParameters(&(request->parameters));
+    
     MasterUartGateway_sendMessage(EMessageId_SetProcessModelParametersResponse, response);
 }
 
 void handleSetControllingAlgorithmExecutionPeriodRequest(TSetControllingAlgorithmExecutionPeriodRequest* request)
 {
     TSetControllingAlgorithmExecutionPeriodResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetControllingAlgorithmExecutionPeriodResponse);
+    
+    response->value = request->value;
+    response->success = HeaterTemperatureController_setAlgorithmExecutionPeriod(request->value);
     
     MasterUartGateway_sendMessage(EMessageId_SetControllingAlgorithmExecutionPeriodResponse, response);
 }
@@ -261,12 +363,20 @@ void handleRegisterNewSegmentToProgramRequest(TRegisterNewSegmentToProgramReques
 {
     TRegisterNewSegmentToProgramResponse* response = MasterDataMemoryManager_allocate(EMessageId_RegisterNewSegmentToProgramResponse);
     
+    response->segmentNumber = request->segment.number;
+    response->success = SegmentsManager_registerNewSegment(&(request->segment));
+    response->numberOfRegisteredSegments = SegmentsManager_getNumberOfRegisteredSegments();
+    
     MasterUartGateway_sendMessage(EMessageId_RegisterNewSegmentToProgramResponse, response);
 }
 
 void handleDeregisterSegmentFromProgramRequest(TDeregisterSegmentFromProgramRequest* request)
 {
     TDeregisterSegmentFromProgramResponse* response = MasterDataMemoryManager_allocate(EMessageId_DeregisterSegmentFromProgramResponse);
+    
+    response->segmentNumber = request->segmentNumber;
+    response->success = SegmentsManager_deregisterSegment(request->segmentNumber);
+    response->numberOfRegisteredSegments = SegmentsManager_getNumberOfRegisteredSegments();
     
     MasterUartGateway_sendMessage(EMessageId_DeregisterSegmentFromProgramResponse, response);
 }
@@ -275,12 +385,24 @@ void handleStartSegmentProgramRequest(TStartSegmentProgramRequest* request)
 {
     TStartSegmentProgramResponse* response = MasterDataMemoryManager_allocate(EMessageId_StartSegmentProgramResponse);
     
+    response->success = ADS1248_startReading();
+    if (response->success)
+    {
+        response->success = SegmentsManager_startProgram();
+    }
+    
     MasterUartGateway_sendMessage(EMessageId_StartSegmentProgramResponse, response);
 }
 
 void handleStopSegmentProgramRequest(TStopSegmentProgramRequest* request)
 {
     TStopSegmentProgramResponse* response = MasterDataMemoryManager_allocate(EMessageId_StopSegmentProgramResponse);
+    
+    response->success = ADS1248_stopReading();
+    if (response->success)
+    {
+        response->success = SegmentsManager_stopProgram();
+    }
     
     MasterUartGateway_sendMessage(EMessageId_StopSegmentProgramResponse, response);
 }
@@ -290,6 +412,8 @@ void handleStartReferenceTemperatureStabilizationRequest(TStartReferenceTemperat
     TStartReferenceTemperatureStabilizationResponse* response =
         MasterDataMemoryManager_allocate(EMessageId_StartReferenceTemperatureStabilizationResponse);
     
+    response->success = ReferenceTemperatureController_startStabilization();
+    
     MasterUartGateway_sendMessage(EMessageId_StartReferenceTemperatureStabilizationResponse, response);
 }
 
@@ -298,12 +422,18 @@ void handleStopReferenceTemperatureStabilizationRequest(TStopReferenceTemperatur
     TStopReferenceTemperatureStabilizationResponse* response =
         MasterDataMemoryManager_allocate(EMessageId_StopReferenceTemperatureStabilizationResponse);
     
+    ReferenceTemperatureController_stopStabilization();
+    response->success = true;
+    
     MasterUartGateway_sendMessage(EMessageId_StopReferenceTemperatureStabilizationResponse, response);
 }
 
 void handleSetRTDPolynomialCoefficientsRequest(TSetRTDPolynomialCoefficientsRequest* request)
 {
     TSetRTDPolynomialCoefficientsResponse* response = MasterDataMemoryManager_allocate(EMessageId_SetRTDPolynomialCoefficientsResponse);
+    
+    SampleCarrierManager_setRTDPolynomialCoefficients(&(request->coefficients));
+    response->success = true;
     
     MasterUartGateway_sendMessage(EMessageId_SetRTDPolynomialCoefficientsResponse, response);
 }
@@ -364,10 +494,11 @@ void segmentsProgramDoneInd(u16 realizedSegmentsCount, u16 lastSegmentDoneNumber
     MasterUartGateway_sendMessage(EMessageId_SegmentsProgramDoneInd, indication);
 }
 
-void segmentStartedInd(u8 segmentNumber)
+void segmentStartedInd(u16 segmentNumber)
 {
     TSegmentStartedInd* indication = MasterDataMemoryManager_allocate(EMessageId_SegmentStartedInd);
     indication->segmentNumber = segmentNumber;
+    indication->leftRegisteredSegments = SegmentsManager_getNumberOfRegisteredSegments();
     MasterUartGateway_sendMessage(EMessageId_SegmentStartedInd, indication);
 }
 

@@ -436,6 +436,9 @@ const char* CStringConverter_EEventId(EEventId eventId)
         case EEventId_TransmitDataToMaster :
             return "TransmitDataToMaster";
         
+        case EEventId_StartStaticSegment :
+            return "StartStaticSegment";
+        
         case EEventId_Terminate :
             return "Terminate";
     }
@@ -482,6 +485,9 @@ const char* CStringConverter_EThreadId(EThreadId threadId)
         
         case EThreadId_MasterDataTransmitter :
             return "MasterDataTransmitter";
+        
+        case EThreadId_StaticSegmentProgramExecutor :
+            return "StaticSegmentProgramExecutor";
         
         case EThreadId_ISR :
             return "ISR";

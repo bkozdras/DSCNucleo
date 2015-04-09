@@ -100,6 +100,8 @@ void Logger_deregisterMasterMessageLogIndCallback(void)
 
 void Logger_debugSystem(const char* format, ...)
 {
+    return;
+    
     if (!isLogShouldBePrinted(ELogSeverity_DebugSystem))
     {
         return;
@@ -125,6 +127,7 @@ void Logger_debug(const char* format, ...)
 {
     if (!isLogShouldBePrinted(ELogSeverity_Debug))
     {
+        osMutexRelease(mMutexLoggerId);
         return;
     }
     
@@ -134,28 +137,53 @@ void Logger_debug(const char* format, ...)
     {
         printPrefix();
         printf("DBG: ");
-        va_list vaList;
-        va_start( vaList, format );
-        vprintf( format, vaList );
-        va_end( vaList );
-        printPostfix();
     }
     
+    TLogInd* logInd = NULL;
     if (ELoggerType_MasterMessage == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
+        logInd->severity = ELogSeverity_Debug;
+    }
+        
+    va_list vaList;
+    va_start( vaList, format );
+    
+    if (ELoggerType_EvalCOM1 == mLoggerType)
+    {
+        vprintf( format, vaList );
+        printPostfix();
+    }
+    else if (ELoggerType_MasterMessage == mLoggerType)
     {
         if (mMasterMesssageLogIndCallback)
         {
-            TLogInd* logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
-            logInd->severity = ELogSeverity_Debug;
-            
-            va_list vaList;
-            va_start( vaList, format );
             logInd->length = vsprintf( logInd->data, format, vaList );
-            va_end( vaList );
-            
             (*mMasterMesssageLogIndCallback)(logInd);
         }
+        else
+        {
+            MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+        }
     }
+    else if (ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        if (mMasterMesssageLogIndCallback)
+        {
+            logInd->length = vsprintf( logInd->data, format, vaList );
+            printf("%s", logInd->data);
+            printPostfix();
+            (*mMasterMesssageLogIndCallback)(logInd);
+        }
+        else
+        {
+            vprintf( format, vaList );
+            printPostfix();
+            MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+        }
+    }
+    
+    va_end( vaList );
     
     osMutexRelease(mMutexLoggerId);
 }
@@ -173,36 +201,62 @@ void Logger_info(const char* format, ...)
     {
         printPrefix();
         printf("INF: ");
-        va_list vaList;
-        va_start( vaList, format );
-        vprintf( format, vaList );
-        va_end( vaList );
-        printPostfix();
     }
     
+    TLogInd* logInd = NULL;
     if (ELoggerType_MasterMessage == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
+        logInd->severity = ELogSeverity_Info;
+    }
+        
+    va_list vaList;
+    va_start( vaList, format );
+    
+    if (ELoggerType_EvalCOM1 == mLoggerType)
+    {
+        vprintf( format, vaList );
+        printPostfix();
+    }
+    else if (ELoggerType_MasterMessage == mLoggerType)
     {
         if (mMasterMesssageLogIndCallback)
         {
-            TLogInd* logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
-            logInd->severity = ELogSeverity_Info;
-            
-            va_list vaList;
-            va_start( vaList, format );
             logInd->length = vsprintf( logInd->data, format, vaList );
-            va_end( vaList );
-            
             (*mMasterMesssageLogIndCallback)(logInd);
         }
+        else
+        {
+            MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+        }
     }
+    else if (ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        if (mMasterMesssageLogIndCallback)
+        {
+            logInd->length = vsprintf( logInd->data, format, vaList );
+            printf("%s", logInd->data);
+            printPostfix();
+            (*mMasterMesssageLogIndCallback)(logInd);
+        }
+        else
+        {
+            vprintf( format, vaList );
+            printPostfix();
+            MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+        }
+    }
+    
+    va_end( vaList );
     
     osMutexRelease(mMutexLoggerId);
 }
 
 void Logger_warning(const char* format, ...)
 {
-    if (!isLogShouldBePrinted(ELogSeverity_Debug))
+    if (!isLogShouldBePrinted(ELogSeverity_Warning))
     {
+        osMutexRelease(mMutexLoggerId);
         return;
     }
     
@@ -212,35 +266,60 @@ void Logger_warning(const char* format, ...)
     {
         printPrefix();
         printf("WRN: ");
-        va_list vaList;
-        va_start( vaList, format );
-        vprintf( format, vaList );
-        va_end( vaList );
-        printPostfix();
     }
     
+    TLogInd* logInd = NULL;
     if (ELoggerType_MasterMessage == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
+        logInd->severity = ELogSeverity_Warning;
+    }
+        
+    va_list vaList;
+    va_start( vaList, format );
+    
+    if (ELoggerType_EvalCOM1 == mLoggerType)
+    {
+        vprintf( format, vaList );
+        printPostfix();
+    }
+    else if (ELoggerType_MasterMessage == mLoggerType)
     {
         if (mMasterMesssageLogIndCallback)
         {
-            TLogInd* logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
-            logInd->severity = ELogSeverity_Warning;
-            
-            va_list vaList;
-            va_start( vaList, format );
             logInd->length = vsprintf( logInd->data, format, vaList );
-            va_end( vaList );
-            
             (*mMasterMesssageLogIndCallback)(logInd);
         }
+        else
+        {
+            MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+        }
     }
+    else if (ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        if (mMasterMesssageLogIndCallback)
+        {
+            logInd->length = vsprintf( logInd->data, format, vaList );
+            printf("%s", logInd->data);
+            printPostfix();
+            (*mMasterMesssageLogIndCallback)(logInd);
+        }
+        else
+        {
+            vprintf( format, vaList );
+            printPostfix();
+            MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+        }
+    }
+    
+    va_end( vaList );
     
     osMutexRelease(mMutexLoggerId);
 }
 
 void Logger_error(const char* format, ...)
 {
-    if (!isLogShouldBePrinted(ELogSeverity_Debug))
+    if (!isLogShouldBePrinted(ELogSeverity_Error))
     {
         return;
     }
@@ -251,28 +330,53 @@ void Logger_error(const char* format, ...)
     {
         printPrefix();
         printf("ERR: ");
-        va_list vaList;
-        va_start( vaList, format );
-        vprintf( format, vaList );
-        va_end( vaList );
-        printPostfix();
     }
     
+    TLogInd* logInd = NULL;
     if (ELoggerType_MasterMessage == mLoggerType || ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
+        logInd->severity = ELogSeverity_Error;
+    }
+        
+    va_list vaList;
+    va_start( vaList, format );
+    
+    if (ELoggerType_EvalCOM1 == mLoggerType)
+    {
+        vprintf( format, vaList );
+        printPostfix();
+    }
+    else if (ELoggerType_MasterMessage == mLoggerType)
     {
         if (mMasterMesssageLogIndCallback)
         {
-            TLogInd* logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
-            logInd->severity = ELogSeverity_Error;
-            
-            va_list vaList;
-            va_start( vaList, format );
             logInd->length = vsprintf( logInd->data, format, vaList );
-            va_end( vaList );
-            
             (*mMasterMesssageLogIndCallback)(logInd);
         }
+        else
+        {
+            MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+        }
     }
+    else if (ELoggerType_EvalCOM1AndMasterMessage == mLoggerType)
+    {
+        if (mMasterMesssageLogIndCallback)
+        {
+            logInd->length = vsprintf( logInd->data, format, vaList );
+            printf("%s", logInd->data);
+            printPostfix();
+            (*mMasterMesssageLogIndCallback)(logInd);
+        }
+        else
+        {
+            vprintf( format, vaList );
+            printPostfix();
+            MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+        }
+    }
+    
+    va_end( vaList );
     
     osMutexRelease(mMutexLoggerId);
 }
@@ -350,9 +454,10 @@ void uninitialize(void)
 
 void setType(ELoggerType loggerType)
 {
-    ELoggerLevel actualLoggerLevel = mLoggerLevel;
-    //uninitialize();
-    initialize(loggerType, actualLoggerLevel);
+    if (Logger_isInitialized())
+    {
+        mLoggerType = loggerType;
+    }
 }
 
 void setLevel(ELoggerLevel loggerLevel)

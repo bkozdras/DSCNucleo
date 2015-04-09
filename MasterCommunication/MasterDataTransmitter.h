@@ -10,6 +10,6 @@ THREAD_PROTOTYPE(MasterDataTransmitter)
 
 void MasterDataTransmitter_setup(void);
 void MasterDataTransmitter_initialize(void);
-void MasterDataTransmitter_transmit(TMessage* message);
+void MasterDataTransmitter_transmitAsync(TMessage* message);
 
 #endif

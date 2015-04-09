@@ -59,6 +59,7 @@ static void notifyObserverAboutNewRTD2Value(void);
 
 static bool transmitData(const TByte firstRegisterAddress, const TByte* data, const u8 dataLength, const TTimeMs timeout);
 static bool receiveData(const TByte firstRegisterAddress, TByte* receivedData, const u8 dataLength, const TTimeMs timeout);
+static bool transmitByteAndValidate(const TByte registerAddress, const TByte data);
 static bool verifyCrcByte(const TByte crcByte, TByte* readAdcData, const u8 adcDataLength);
 static void assertCSB(void);
 static void deassertCSB(void);
@@ -396,7 +397,7 @@ bool turnOffDevice(void)
     TByte writeData = LMP90100_REG_PWRCN_DEFAULT;
     writeData |= LMP90100_PWRCN_STAND_BY_MODE;
     
-    if (transmitData(LMP90100_REG_PWRCN, &writeData, 1, 100))
+    if (transmitByteAndValidate(LMP90100_REG_PWRCN, writeData))
     {
         Logger_info("%s: Device is in STAND-BY state!", getLoggerPrefix());
         return true;
@@ -617,6 +618,31 @@ bool receiveData(const TByte firstRegisterAddress, TByte* receivedData, const u8
     {
         Logger_error("%s: Communication failure during reading data (Length: %u).", getLoggerPrefix(), dataLength);
         FaultIndication_start(EFaultId_Spi, EUnitId_Nucleo, EUnitId_LMP90100SignalsMeasurement);
+        return false;
+    }
+    
+    return true;
+}
+
+bool transmitByteAndValidate(const TByte registerAddress, const TByte data)
+{
+    if (!transmitData(registerAddress, &data, 1, 100))
+    {
+        Logger_error("%s: Validating transmitting data: Trasmitting failed!", getLoggerPrefix());
+        return false;
+    }
+    
+    TByte readData;
+    
+    if (!receiveData(registerAddress, &readData, 1, 100))
+    {
+        Logger_error("%s: Validating transmitting data: Receiving failed!", getLoggerPrefix());
+        return false;
+    }
+    
+    if (!Comparator_u8(&data, &readData, 1))
+    {
+        Logger_error("%s: Validating transmitting data: Comparing failed (Device register: 0x%02X)!", getLoggerPrefix(), registerAddress);
         return false;
     }
     

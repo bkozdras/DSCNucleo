@@ -108,17 +108,22 @@ EVENT_HANDLER(CallibrationDoneInd)
     if (EADS1248CallibrationType_Idle != mActiveCallibration)
     {
         Logger_debug("%s: Callibration %s done.", getLoggerPrefix(), CStringConverter_EADS1248CallibrationType(mActiveCallibration));
-        if (mCallibrationDoneNotifyCallback)
-        {
-            (*mCallibrationDoneNotifyCallback)(mActiveCallibration, true);
-        }
+        bool result = true;
         EXTI_unsetCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN));
+        EXTI_setCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN), dataReadyCallback);
         mActiveCallibration = EADS1248CallibrationType_Idle;
         mCallibrationDoneNotifyCallback = NULL;
         
         if (!writeDataToRegisterAndValidateIt(ADS1248_REGISTER_MUX1, getMux1RegisterContent(mActiveCallibration)))
         {
             Logger_error("%s: Failure in setting measurment type to Normal Operation in MUX1 register!", getLoggerPrefix());
+            result = false;
+        }
+        
+        if (mCallibrationDoneNotifyCallback)
+        {
+            (*mCallibrationDoneNotifyCallback)(mActiveCallibration, result);
+            mCallibrationDoneNotifyCallback = NULL;
         }
     }
     else
@@ -1030,12 +1035,18 @@ bool startCallibration(EADS1248CallibrationType callibrationType, void (*callibr
     }
     else if (EADS1248CallibrationType_Idle == mActiveCallibration)
     {
-        stopReading();
+        if (!stopReading())
+        {
+            Logger_error("%s: Callibration %s not started. Stopping device failed!", getLoggerPrefix(), CStringConverter_EADS1248CallibrationType(mActiveCallibration));
+            return false;
+        }
+        
         if (mIsDeviceTurnedOff)
         {
             if (!turnOnDevice())
             {
                 Logger_error("%s: Callibration %s not started. Device turning on failed!", getLoggerPrefix(), CStringConverter_EADS1248CallibrationType(mActiveCallibration));
+                return false;
             }
         }
         EXTI_setCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN), callibrationDoneCallback);
@@ -1064,7 +1075,7 @@ bool startCallibration(EADS1248CallibrationType callibrationType, void (*callibr
         return false;
     }
     
-    return false;
+    return true;
 }
 
 bool startReading(void)

@@ -30,6 +30,7 @@
 #include "Controller/ReferenceTemperatureReader.h"
 #include "Controller/ReferenceTemperatureController.h"
 #include "Controller/InertialModel.h"
+#include "Controller/SegmentsManager.h"
 
 #include "MasterCommunication/MasterDataManager.h"
 #include "MasterCommunication/MasterDataMemoryManager.h"
@@ -95,6 +96,7 @@ void setup(void)
     HeaterTemperatureController_setup();
     HeaterTemperatureReader_setup();
     SampleCarrierDataManager_setup();
+    SegmentsManager_setup();
     ReferenceTemperatureReader_setup();
     ReferenceTemperatureController_setup();
     
@@ -117,7 +119,7 @@ void createThreads(void)
     THREAD_CREATE(SampleCarrierDataManager, Normal, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(ReferenceTemperatureReader, Low, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataManager, Low, configNORMAL_STACK_SIZE);
-    THREAD_CREATE(MasterDataReceiver, Low, configNORMAL_STACK_SIZE);
+    THREAD_CREATE(MasterDataReceiver, Normal, configNORMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataTransmitter, Low, configMAXIMUM_STACK_SIZE);
     THREAD_CREATE(SampleThread, Normal, configMINIMAL_STACK_SIZE);
 }
@@ -126,11 +128,11 @@ void SystemManager_thread(void const* arg)
 {
     Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_DebugSystem);
     initializeCommunicationWithMaster();
-    //Logger_setLevel(ELoggerLevel_Debug);
-    //Logger_setType(ELoggerType_EvalCOM1AndMasterMessage);
+    Logger_setLevel(ELoggerLevel_Debug);
+    Logger_setType(ELoggerType_EvalCOM1AndMasterMessage);
     
     Logger_info("%s: THREAD STARTED!", getLoggerPrefix());
-    
+
     checkKernelStatus();
     
     Logger_info("%s: Started configuring device!", getLoggerPrefix());
@@ -229,23 +231,23 @@ bool configureDevices(void)
     Logger_debug("%s: Configuring devices: START.", getLoggerPrefix());
     
     bool mainResult = true;
-    //bool result = false;
+    bool result = false;
     
-    //result = ADS1248_initialize();
-    // mainResult = mainResult && result;
-    //notifyObserverAboutUnitReadyStatus(EUnitId_ADS1248, result);
+    result = ADS1248_initialize();
+    mainResult = mainResult && result;
+    notifyObserverAboutUnitReadyStatus(EUnitId_ADS1248, result);
     
-    //result = LMP90100ControlSystem_initialize();
-    // mainResult = mainResult && result;
-    //notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100ControlSystem, result);
+    result = LMP90100ControlSystem_initialize();
+    mainResult = mainResult && result;
+    notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100ControlSystem, result);
     
-    //result = LMP90100SignalsMeasurement_initialize();
-    // mainResult = mainResult && result;
-    //notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100SignalsMeasurement, result);
+    result = LMP90100SignalsMeasurement_initialize();
+    mainResult = mainResult && result;
+    notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100SignalsMeasurement, result);
     
-    //result = MCP4716_initialize();
-    // mainResult = mainResult && result;
-    //notifyObserverAboutUnitReadyStatus(EUnitId_MCP4716, result);
+    result = MCP4716_initialize();
+    mainResult = mainResult && result;
+    notifyObserverAboutUnitReadyStatus(EUnitId_MCP4716, result);
     
     if (mainResult)
     {
@@ -292,6 +294,7 @@ bool configureControllers(void)
     HeaterTemperatureController_initialize();
     HeaterTemperatureReader_initialize();
     SampleCarrierDataManager_initialize();
+    SegmentsManager_initialize();
     ReferenceTemperatureReader_initialize();
     ReferenceTemperatureController_initialize();
     
@@ -311,6 +314,7 @@ void startThreads(void)
     KernelManager_startThread(mThreadId, EThreadId_ReferenceTemperatureReader);
     KernelManager_startThread(mThreadId, EThreadId_SampleCarrierDataManager);
     KernelManager_startThread(mThreadId, EThreadId_SampleThread);
+    KernelManager_startThread(mThreadId, EThreadId_StaticSegmentProgramExecutor);
     
     Logger_debug("%s: Starting threads: DONE!", getLoggerPrefix());
 }

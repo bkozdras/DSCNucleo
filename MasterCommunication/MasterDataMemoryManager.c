@@ -47,7 +47,7 @@
 
 /***************************************************/
                                                             
-DEFINE_MESSAGE_HEAP(LogInd, 10);
+DEFINE_MESSAGE_HEAP(LogInd, 30);
 DEFINE_MESSAGE_HEAP(FaultInd, 3);
 DEFINE_MESSAGE_HEAP(PollingRequest, 3);
 DEFINE_MESSAGE_HEAP(PollingResponse, 3);

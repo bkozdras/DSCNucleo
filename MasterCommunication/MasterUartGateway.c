@@ -23,7 +23,7 @@ void MasterUartGateway_setup(void)
 void MasterUartGateway_initialize(void)
 {
     osMutexWait(mMutexId, osWaitForever);
-    Logger_debug("MasterUartGateway: Initialized!");
+    Logger_debugSystem("MasterUartGateway: Initialized!");
     osMutexRelease(mMutexId);
 }
 
@@ -46,7 +46,7 @@ void MasterUartGateway_sendMessage(EMessageId messageType, void* message)
     packedMessage.crc = calculateCrcValue(packedMessage.length, packedMessage.data);
     
     Logger_debugSystem("MasterUartGateway: Message %s prepared and will be sent to Master.", CStringConverter_EMessageId(packedMessage.id));
-    MasterDataTransmitter_transmit(&packedMessage);
+    MasterDataTransmitter_transmitAsync(&packedMessage);
     
     osMutexRelease(mMutexId);
 }
@@ -70,6 +70,7 @@ void MasterUartGateway_handleReceivedMessage(TMessage message)
     else
     {
         Logger_debugSystem("MasterUartGateway: Message %s received but CRC verification failed.", CStringConverter_EMessageId(message.id));
+        MasterDataMemoryManager_free(message.id, message.data);
     }
     
     osMutexRelease(mMutexId);
