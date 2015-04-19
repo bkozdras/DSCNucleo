@@ -31,7 +31,7 @@ static float mGainValue = 1.0F;
 //static const float mComparatorResistanceValue = 0.0F; // 1 kOhm
 static const float mComparatorResistanceValue = 1000.0F; // 1 kOhm
 //static const float mReferenceResistanceValue = 3212.0F; // 100 Ohm
-static const float mReferenceResistanceValue = 1500.0F; // 1.5 kOhm
+static const float mReferenceResistanceValue = 1487.0F; // 1.5 kOhm
 static float mActualRTDValue = 0.0F;
 static ELMP90100Mode mActualDeviceMode = ELMP90100Mode_Off;
 
@@ -345,7 +345,7 @@ bool turnOffDevice(void)
     TByte writeData = LMP90100_REG_PWRCN_DEFAULT;
     writeData |= LMP90100_PWRCN_STAND_BY_MODE;
     
-    if (transmitByteAndValidate(LMP90100_REG_PWRCN, writeData))
+    if (transmitData(LMP90100_REG_PWRCN, &writeData, 1, 100))
     {
         Logger_info("%s: Device is in STAND-BY state!", getLoggerPrefix());
         return true;

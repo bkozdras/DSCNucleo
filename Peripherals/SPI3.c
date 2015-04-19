@@ -20,6 +20,7 @@ static osMutexId mBlockingMutexId = NULL;
 
 static bool mIsInitialized = false;
 static SPI_HandleTypeDef mSpiHandle;
+static ESpi3ClkPolarity mClkPolarity;
 
 static void mspInit(SPI_HandleTypeDef* spiHandle);
 static void mspDeInit(SPI_HandleTypeDef* spiHandle);
@@ -48,7 +49,8 @@ bool SPI3_initialize(void)
     mSpiHandle.Init.Mode = SPI_MODE_MASTER;
     mSpiHandle.Init.Direction = SPI_DIRECTION_2LINES;
     mSpiHandle.Init.DataSize = SPI_DATASIZE_8BIT;
-    mSpiHandle.Init.CLKPolarity = SPI_POLARITY_LOW;
+    mSpiHandle.Init.CLKPolarity = SPI_POLARITY_HIGH;
+    mClkPolarity = ESpi3ClkPolarity_High;
     mSpiHandle.Init.CLKPhase = SPI_PHASE_1EDGE;
     mSpiHandle.Init.NSS = SPI_NSS_SOFT;
     mSpiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
@@ -101,9 +103,31 @@ void SPI3_uninitialize(void)
     osMutexRelease(mMutexId);
 }
 
-void SPI3_block(void)
+void SPI3_block(ESpi3ClkPolarity clkPolarity)
 {
     osMutexWait(mBlockingMutexId, osWaitForever);
+    
+    if (mClkPolarity != clkPolarity)
+    {
+        if (ESpi3ClkPolarity_High == clkPolarity)
+        {
+            mSpiHandle.Init.CLKPolarity = SPI_POLARITY_HIGH;
+        }
+        else
+        {
+            mSpiHandle.Init.CLKPolarity = SPI_POLARITY_LOW;
+        }
+        
+        MSP_setHAL_SPI_MspInitCallback(mspInit);
+        HAL_StatusTypeDef halStatus = HAL_SPI_Init(&mSpiHandle);
+        if(HAL_OK != halStatus)
+        {
+            Logger_error("%s: Initialization failed (Reason: %s)!", getLoggerPrefix(), CStringConverter_HAL_StatusTypeDef(halStatus));
+            FaultIndication_start(EFaultId_Spi, EUnitId_Nucleo, EUnitId_Empty);
+            mIsInitialized = false;
+            assert_param(false);
+        }
+    }
 }
 
 void SPI3_unblock(void)

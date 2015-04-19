@@ -397,7 +397,7 @@ bool turnOffDevice(void)
     TByte writeData = LMP90100_REG_PWRCN_DEFAULT;
     writeData |= LMP90100_PWRCN_STAND_BY_MODE;
     
-    if (transmitByteAndValidate(LMP90100_REG_PWRCN, writeData))
+    if (transmitData(LMP90100_REG_PWRCN, &writeData, 1, 100))
     {
         Logger_info("%s: Device is in STAND-BY state!", getLoggerPrefix());
         return true;
@@ -590,7 +590,7 @@ bool sendRegisterSetupInstructions(TSpiOperation spiOperation, TByte firstRegist
 bool transmitData(const TByte firstRegisterAddress, const TByte* data, const u8 dataLength, const TTimeMs timeout)
 {
     Logger_debug("%s: Sending data (First register address: 0x%02X, Data Length: %u).", getLoggerPrefix(), firstRegisterAddress, dataLength);
-    SPI3_block();
+    SPI3_block(ESpi3ClkPolarity_Low);
     assertCSB();
     sendRegisterSetupInstructions(TSpiOperation_Write, firstRegisterAddress, dataLength);
     bool status = SPI3_transmit(data, dataLength, timeout);
@@ -608,7 +608,7 @@ bool transmitData(const TByte firstRegisterAddress, const TByte* data, const u8 
 bool receiveData(const TByte firstRegisterAddress, TByte* receivedData, const u8 dataLength, const TTimeMs timeout)
 {
     Logger_debug("%s: Receiving data (First register address: 0x%02X, Data Length: %u).", getLoggerPrefix(), firstRegisterAddress, dataLength);
-    SPI3_block();
+    SPI3_block(ESpi3ClkPolarity_Low);
     assertCSB();
     sendRegisterSetupInstructions(TSpiOperation_Read, firstRegisterAddress, dataLength);
     bool status = SPI3_receive(receivedData, dataLength, timeout);

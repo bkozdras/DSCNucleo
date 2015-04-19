@@ -260,6 +260,7 @@ void controllerAlgorithm(void const* arg)
     controllerData.SP = mTemperatureSetPoint;
     controllerData.PV = HeaterTemperatureReader_getTemperature();
     controllerData.ERR = controllerData.SP - controllerData.PV;
+    mTemperatureDeviation = controllerData.ERR;
     
     float calculatedCV = arm_pid_f32(&mProcessPid, controllerData.ERR);
     controllerData.CV = setCVInScope(calculatedCV);
@@ -269,7 +270,6 @@ void controllerAlgorithm(void const* arg)
         if (setPower(controllerData.CV))
         {
             mHeaterControlValue = controllerData.CV;
-            mTemperatureDeviation = controllerData.ERR;
         }
         else
         {

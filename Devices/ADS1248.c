@@ -72,7 +72,7 @@ static TByte getSys0RegisterContent(EADS1248GainValue gainValue, EADS1248Samplin
 static TByte getMux1RegisterContent(EADS1248CallibrationType callibrationType);
 static TByte getCallibrationCommmand(EADS1248CallibrationType callibrationType);
 static ChannelData* getChannelData(EUnitId thermocouple);
-static double convertAdcDataToVoltage(u32 adcData);
+static double convertAdcDataToVoltage(EUnitId thermocouple, u32 adcData);
 static void storeReadData(EUnitId thermocouple, double adcData);
 static void notifyObserverAboutNewADCValue(EUnitId thermocouple);
 static double getStoredThermocoupleVoltageValue(EUnitId thermocouple);
@@ -107,24 +107,32 @@ EVENT_HANDLER(CallibrationDoneInd)
 {
     if (EADS1248CallibrationType_Idle != mActiveCallibration)
     {
+        EXTI_unsetCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN));
+        
         Logger_debug("%s: Callibration %s done.", getLoggerPrefix(), CStringConverter_EADS1248CallibrationType(mActiveCallibration));
         bool result = true;
-        EXTI_unsetCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN));
-        EXTI_setCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN), dataReadyCallback);
-        mActiveCallibration = EADS1248CallibrationType_Idle;
-        mCallibrationDoneNotifyCallback = NULL;
         
-        if (!writeDataToRegisterAndValidateIt(ADS1248_REGISTER_MUX1, getMux1RegisterContent(mActiveCallibration)))
+        result = sendCommand(ADS1248_COMMAND_SDATAC);
+        if (result)
         {
-            Logger_error("%s: Failure in setting measurment type to Normal Operation in MUX1 register!", getLoggerPrefix());
-            result = false;
+            result = writeDataToRegisterAndValidateIt(ADS1248_REGISTER_MUX1, getMux1RegisterContent(EADS1248CallibrationType_Idle));
+            if (!result)
+            {
+                Logger_error("%s: Failure in setting measurment type to Normal Operation in MUX1 register!", getLoggerPrefix());
+            }
+        }
+        else
+        {
+            Logger_error("%s: Failure in stopping reading data after callibration finishing.", getLoggerPrefix());
         }
         
         if (mCallibrationDoneNotifyCallback)
         {
             (*mCallibrationDoneNotifyCallback)(mActiveCallibration, result);
-            mCallibrationDoneNotifyCallback = NULL;
         }
+        
+        mActiveCallibration = EADS1248CallibrationType_Idle;
+        mCallibrationDoneNotifyCallback = NULL;
     }
     else
     {
@@ -157,8 +165,8 @@ EVENT_HANDLER(DeviceDataReadyInd)
         wrongDataCounter = 0;
         
         Logger_debug("%s: Read ADC value: %u.", getLoggerPrefix(), readData);
-        double voltageValue = convertAdcDataToVoltage(readData);
-        Logger_debug("%s: Actual %s value: %.5f V.", getLoggerPrefix(), CStringConverter_EUnitId(readThermocouple), voltageValue);
+        double voltageValue = convertAdcDataToVoltage(readThermocouple, readData);
+        Logger_debug("%s: Actual %s value: %.6f V.", getLoggerPrefix(), CStringConverter_EUnitId(readThermocouple), voltageValue);
         storeReadData(readThermocouple, voltageValue);
         notifyObserverAboutNewADCValue(readThermocouple);
     }
@@ -172,6 +180,8 @@ void ADS1248_setup(void)
 
 bool ADS1248_initialize(void)
 {
+    osMutexWait(mMutexId, osWaitForever);
+    
     bool result = false;
     
     Logger_debug("%s: Device initialization.", getLoggerPrefix());
@@ -181,15 +191,14 @@ bool ADS1248_initialize(void)
         SPI3_initialize();
     }
     
-    EXTI_setCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN), dataReadyCallback);
-    assertRESET();
     deassertSTART();
+    assertRESET();
+    osDelay(200);
+    deassertRESET();
+    assertSTART();
+    osDelay(200);
     
-    result = configureRegisters();
-    if (result)
-    {
-        result = turnOffDevice();
-    }
+    result = turnOffDevice();
     
     if (result)
     {
@@ -227,7 +236,11 @@ bool ADS1248_changeMode(EADS1248Mode newMode)
     {
         if ( EADS1248Mode_On == newMode )
         {
-            status = configureRegisters();
+            status = turnOnDevice();
+            if (status)
+            {
+                status = configureRegisters();
+            }
         }
         
         if ( EADS1248Mode_Off == newMode )
@@ -381,6 +394,8 @@ void initializeGpio(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
     HAL_GPIO_Init(GET_GPIO_PORT(ADS1248_START_PORT), &GPIO_InitStruct);
     
+    assertSTART();
+    
     // RESET
     
     GPIO_CLOCK_ENABLE(ADS1248_RESET_PORT);
@@ -390,6 +405,8 @@ void initializeGpio(void)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
     HAL_GPIO_Init(GET_GPIO_PORT(ADS1248_RESET_PORT), &GPIO_InitStruct);
+    
+    assertRESET();
     
     // DRDYB
     
@@ -404,8 +421,6 @@ void initializeGpio(void)
 
 bool configureRegisters(void)
 {
-    deassertSTART();
-    
     TByte writeData [13];
     TByte registerAddresses [13];
     u8 counter = 0;
@@ -424,7 +439,7 @@ bool configureRegisters(void)
     // Register VBIAS
 
     MASK(writeData[counter], ADS1248_REGISTER_VBIAS_VBIAS_MASK);
-    
+    SET(writeData[counter], ADS1248_REGISTER_VBIAS_VBIAS_AIN0);
     registerAddresses[counter++] = ADS1248_REGISTER_VBIAS;
     
     // Register MUX1
@@ -444,7 +459,7 @@ bool configureRegisters(void)
     
     MASK(writeData[counter], ADS1248_REGISTER_SYS0_MASK);
     MASK(writeData[counter], ADS1248_REGISTER_SYS0_PGA_MASK);
-    SET(writeData[counter], ADS1248_REGISTER_SYS0_PGA_1);
+    SET(writeData[counter], ADS1248_REGISTER_SYS0_PGA_128);
     MASK(writeData[counter], ADS1248_REGISTER_SYS0_DOR_MASK);
     SET(writeData[counter], ADS1248_REGISTER_SYS0_DOR_5_SPS);
     
@@ -474,6 +489,8 @@ bool configureRegisters(void)
     
     // Register IDAC0
     
+    MASK(writeData[counter], ADS1248_REGISTER_IDAC0_ID_MASK);
+    SET(writeData[counter], (0x09 << 4));
     MASK(writeData[counter], ADS1248_REGISTER_IDAC0_DRDY_MODE_MASK);
     SET(writeData[counter], ADS1248_REGISTER_IDAC0_DRDY_MODE_ONLY_DATA_OUT);
     MASK(writeData[counter], ADS1248_REGISTER_IDAC0_IMAG_MASK);
@@ -512,8 +529,8 @@ bool configureRegisters(void)
 
 bool turnOnDevice(void)
 {
-    deassertRESET();
-    if (sendCommand(ADS1248_COMMAND_WAKEUP))
+    bool result = sendCommand(ADS1248_COMMAND_WAKEUP);
+    if (result)
     {
         mIsDeviceTurnedOff = false;
         Logger_debug("%s: Device is turned on!", getLoggerPrefix());
@@ -528,8 +545,13 @@ bool turnOnDevice(void)
 
 bool turnOffDevice(void)
 {
-    stopReading();
-    if (sendCommand(ADS1248_COMMAND_SLEEP))
+    bool result = stopReading();
+    if (result)
+    {
+        result = sendCommand(ADS1248_COMMAND_SLEEP);
+    }
+    
+    if (result)
     {
         mIsDeviceTurnedOff = true;
         Logger_debug("%s: Device is turned off!", getLoggerPrefix());
@@ -595,18 +617,43 @@ bool readAdcData(u32* adcData)
 bool readAdcDataAndChangeActiveThermocouple(u32* adcData)
 {
     EUnitId nextThermocouple = getNextThermocouple();
+    bool isVbiasModeChanging = false;
+    bool result = false;
     
-    TByte writeData [3];
-    TByte readData [3];
+    TByte writeData [4];
+    TByte readData [4];
     
     writeData[0] = ADS1248_COMMAND_WREG;
     writeData[0] |= (ADS1248_REGISTER_MUX0 & ADS1248_COMMAND_WREG_REG_ADDRESS_MASK);
-    writeData[1] = 0x01;
+    
+    if (EUnitId_ThermocoupleReference == mActiveThermocouple || EUnitId_Thermocouple1 == mActiveThermocouple)
+    {
+        writeData[1] = 0x01; // WREG: 2 bytes
+        writeData[3] = 0x00;
+        if (EUnitId_ThermocoupleReference == mActiveThermocouple)
+        {
+            MASK(writeData[3], ADS1248_REGISTER_VBIAS_VBIAS_MASK);
+            SET(writeData[3], ADS1248_REGISTER_VBIAS_VBIAS_AIN0);
+        }
+        isVbiasModeChanging = true;
+    }
+    else
+    {
+        writeData[1] = 0x00; // WREG: 1 byte
+    }
+    
     writeData[2] = getMux0RegisterContentForThermocoupleMeasurement(nextThermocouple);
     
-    SPI3_block();
+    SPI3_block(ESpi3ClkPolarity_High);
     assertCSB();
-    bool result = SPI3_transmitReceive(writeData, readData, 3, 100);
+    if (isVbiasModeChanging)
+    {
+        result = SPI3_transmitReceive(writeData, readData, 4, 100);
+    }
+    else
+    {
+        result = SPI3_transmitReceive(writeData, readData, 3, 100);
+    }
     deassertCSB();
     SPI3_unblock();
     
@@ -639,13 +686,16 @@ EUnitId getNextThermocouple(void)
     static ThermocouplesPair thermocouplesPairs [USED_CHANNELS_COUNT] =
         {
             { EUnitId_ThermocoupleReference, EUnitId_Thermocouple1 },
+            { EUnitId_Thermocouple1, EUnitId_ThermocoupleReference }
+            /*
             { EUnitId_Thermocouple1, EUnitId_Thermocouple2 },
             { EUnitId_Thermocouple2, EUnitId_Thermocouple3 },
             { EUnitId_Thermocouple3, EUnitId_Thermocouple4 },
-            { EUnitId_Thermocouple4, EUnitId_Thermocouple1 }
+            { EUnitId_Thermocouple4, EUnitId_ThermocoupleReference }*/
         };
         
-    for (u8 iter = 0; USED_CHANNELS_COUNT > iter; ++iter)
+    //for (u8 iter = 0; USED_CHANNELS_COUNT > iter; ++iter)
+    for (u8 iter = 0; 2 > iter; ++iter)
     {
         if (mActiveThermocouple == thermocouplesPairs[iter].first)
         {
@@ -984,10 +1034,32 @@ ChannelData* getChannelData(EUnitId thermocouple)
     return NULL;
 }
 
-double convertAdcDataToVoltage(u32 adcData)
+double convertAdcDataToVoltage(EUnitId thermocouple, u32 adcData)
 {
+    double sign = 0.0F;
+    if (0x7FFFFF < adcData)
+    {
+        // Negative value of read voltage
+        if (EUnitId_ThermocoupleReference == thermocouple)
+        {
+            // Value always positive - integrated circuit inaccuracy
+            return 0.0;
+        }
+        else
+        {
+            adcData = ((~adcData) & 0x7FFFFF);
+            sign = -1.0;
+        }
+    }
+    else
+    {
+        // Positive value of read voltage
+        sign = 1.0;
+    }
+    
+    // Positive value of read voltage
     double doubleAdcData = (double) adcData;
-    return ( ( ( (doubleAdcData * 2.048) ) / mGainValue) / 8388607.0 );
+    return ( sign * ( ( ( (doubleAdcData * 2.048) ) / mGainValue) / 8388607.0 ) );
 }
 
 void storeReadData(EUnitId thermocouple, double adcData)
@@ -1080,7 +1152,7 @@ bool startCallibration(EADS1248CallibrationType callibrationType, void (*callibr
 
 bool startReading(void)
 {
-    mActiveThermocouple = EUnitId_Thermocouple1;
+    mActiveThermocouple = EUnitId_ThermocoupleReference;
     TByte mux0RegisterContent = getMux0RegisterContentForThermocoupleMeasurement(EUnitId_ThermocoupleReference);
     
     if (mIsDeviceTurnedOff)
@@ -1089,6 +1161,7 @@ bool startReading(void)
     }
     
     bool result = writeDataToRegisterAndValidateIt(ADS1248_REGISTER_MUX0, mux0RegisterContent);
+    EXTI_setCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN), dataReadyCallback);
     if (result)
     {
         result = sendCommand(ADS1248_COMMAND_RDATAC);
@@ -1096,12 +1169,11 @@ bool startReading(void)
     
     if (result)
     {
-        EXTI_setCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN), dataReadyCallback);
-        assertSTART();
         Logger_debug("%s: Starting reading ADC data from thermocouples.", getLoggerPrefix());
     }
     else
     {
+        EXTI_unsetCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN));
         Logger_error("%s: Starting reading failed!", getLoggerPrefix());
     }
     
@@ -1110,22 +1182,12 @@ bool startReading(void)
 
 bool stopReading(void)
 {
-    deassertSTART();
     EXTI_unsetCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN));
     bool result = sendCommand(ADS1248_COMMAND_SDATAC);
     if (result)
     {
-        result = turnOffDevice();
-        if (result)
-        {
-            Logger_debug("%s: Data reading stopped.", getLoggerPrefix());
-            return true;
-        }
-        else
-        {
-            Logger_error("%s: Data reading stopped but device is not turning off. Operation failed", getLoggerPrefix());
-            return false;
-        }
+        Logger_debug("%s: Data reading stopped.", getLoggerPrefix());
+        return true;
     }
     else
     {
@@ -1149,7 +1211,7 @@ double getStoredThermocoupleVoltageValue(EUnitId thermocouple)
 
 bool sendCommand(TByte command)
 {
-    SPI3_block();
+    SPI3_block(ESpi3ClkPolarity_High);
     assertCSB();
     
     bool result = SPI3_transmit(&command, 1, 100);
@@ -1175,12 +1237,12 @@ bool writeDataToRegister(TByte registerAddress, TByte data)
     writeData[0] |= (registerAddress & ADS1248_COMMAND_WREG_REG_ADDRESS_MASK);
     
     // 2nd Command Byte
-    writeData[1] = 0x01; // one byte
+    writeData[1] = 0x00; // one byte (1 - 1 = 0)
     
     // Data written to register
     writeData[2] = data;
     
-    SPI3_block();
+    SPI3_block(ESpi3ClkPolarity_High);
     assertCSB();
     
     bool result = SPI3_transmit(writeData, 3, 100);
@@ -1212,7 +1274,7 @@ bool readDataFromRegister(TByte registerAddress, TByte* data)
     // 2nd Command Byte
     writeData[1] = 0x01;
     
-    SPI3_block();
+    SPI3_block(ESpi3ClkPolarity_High);
     assertCSB();
     
     bool result = SPI3_transmit(writeData, 2, 100);
@@ -1245,6 +1307,7 @@ bool writeDataToRegisterAndValidateIt(TByte registerAddress, TByte data)
     if (result)
     {
         TByte dataToCompare;
+        osDelay(1);
         result = readDataFromRegister(registerAddress, &dataToCompare);
         if (result)
         {
@@ -1283,17 +1346,17 @@ void assertSTART(void)
 
 void deassertSTART(void)
 {
-    GPIO_SET_HIGH_LEVEL(ADS1248_RESET_PORT, ADS1248_RESET_PIN);
+    GPIO_SET_LOW_LEVEL(ADS1248_START_PORT, ADS1248_START_PIN);
 }
 
 void assertRESET(void)
 {
-    GPIO_SET_HIGH_LEVEL(ADS1248_RESET_PORT, ADS1248_RESET_PIN);
+    GPIO_SET_LOW_LEVEL(ADS1248_RESET_PORT, ADS1248_RESET_PIN);
 }
 
 void deassertRESET(void)
 {
-    GPIO_SET_LOW_LEVEL(ADS1248_RESET_PORT, ADS1248_RESET_PIN);
+    GPIO_SET_HIGH_LEVEL(ADS1248_RESET_PORT, ADS1248_RESET_PIN);
 }
 
 #undef MASK

@@ -113,11 +113,11 @@ void MasterDataManager_initialize(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     
-    FaultIndication_registerNewFaultCallback(faultIndCallback);
-    SystemManager_registerUnitReadyIndCallback(unitReadyIndCallback);
-    Logger_registerMasterMessageLogIndCallback(logIndCallback);
-    SegmentsManager_registerSegmentsProgramDoneIndCallback(segmentsProgramDoneInd);
-    SegmentsManager_registerSegmentStartedIndCallback(segmentStartedInd);
+    //FaultIndication_registerNewFaultCallback(faultIndCallback);
+    //SystemManager_registerUnitReadyIndCallback(unitReadyIndCallback);
+    //Logger_registerMasterMessageLogIndCallback(logIndCallback);
+    //SegmentsManager_registerSegmentsProgramDoneIndCallback(segmentsProgramDoneInd);
+    //SegmentsManager_registerSegmentStartedIndCallback(segmentStartedInd);
     
     Logger_info("%s: Initialized!", getLoggerPrefix());
     osMutexRelease(mMutexId);

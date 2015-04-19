@@ -20,7 +20,7 @@ void CopyObject_SSampleCarrierData(SSampleCarrierData* source, SSampleCarrierDat
 {
     for (u8 iter = 0; THERMOCOUPLES_COUNT > iter; ++iter)
     {
-        dest->data[iter].nanoVoltVoltage = source->data[iter].nanoVoltVoltage;
+        dest->data[iter].milliVoltVoltage = source->data[iter].milliVoltVoltage;
         dest->data[iter].thermocouple = source->data[iter].thermocouple;
     }
     dest->rtdTemperatureValue = source->rtdTemperatureValue;

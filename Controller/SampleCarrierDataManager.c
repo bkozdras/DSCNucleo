@@ -47,7 +47,7 @@ static void storeReceivedRTDData(double data);
 static void copySampleCarrierData(SSampleCarrierData* source, SSampleCarrierData* destination);
 static void cleanUpDataReceivedVariables(void);
 static double convertRTDResistanceToTemperature(double resistance);
-static double convertThermocoupleVoltageValueToNanovolts(double valueInVolts);
+static double convertThermocoupleVoltageValueToMillivolts(double valueInVolts);
 
 THREAD(SampleCarrierDataManager)
 {
@@ -77,8 +77,8 @@ EVENT_HANDLER(NewThermocoupleVoltageValueInd)
     
     Logger_debug("%s: Received new %s value: %.6f V.", getLoggerPrefix(), CStringConverter_EUnitId(event->thermocouple), event->value);
     
-    double thermocoupleNanoVoltValue = convertThermocoupleVoltageValueToNanovolts(thermocoupleNanoVoltValue);
-    Logger_debug("%s: %s value: %.4f nV. Storing data.", getLoggerPrefix(), CStringConverter_EUnitId(event->thermocouple), thermocoupleNanoVoltValue);
+    double thermocoupleNanoVoltValue = convertThermocoupleVoltageValueToMillivolts(event->value);
+    Logger_debug("%s: %s value: %.5f mV. Storing data.", getLoggerPrefix(), CStringConverter_EUnitId(event->thermocouple), thermocoupleNanoVoltValue);
     storeReceivedThermocoupleData(event->thermocouple, thermocoupleNanoVoltValue);
     processIfSampleCarrierDataIsReady();
 }
@@ -154,7 +154,7 @@ void processIfSampleCarrierDataIsReady(void)
     }
     else
     {
-        Logger_debug("%s: All sample carrier data is not ready yey.", getLoggerPrefix());
+        Logger_debug("%s: All sample carrier data is not ready yet.", getLoggerPrefix());
     }
 }
 
@@ -182,7 +182,7 @@ void storeReceivedThermocoupleData(EUnitId thermocouple, double data)
     {
         if (mSampleCarrierData.data[iter].thermocouple == thermocouple)
         {
-            mSampleCarrierData.data[iter].nanoVoltVoltage = data;
+            mSampleCarrierData.data[iter].milliVoltVoltage = data;
             mThermocouplesDataReceived[iter] = true;
         }
     }
@@ -200,7 +200,7 @@ void copySampleCarrierData(SSampleCarrierData* source, SSampleCarrierData* desti
     for (u8 iter = 0; THERMOCOUPLES_COUNT > iter; ++iter)
     {
         destination->data[iter].thermocouple = source->data[iter].thermocouple;
-        destination->data[iter].nanoVoltVoltage = source->data[iter].nanoVoltVoltage;
+        destination->data[iter].milliVoltVoltage = source->data[iter].milliVoltVoltage;
     }
 }
 
@@ -223,7 +223,7 @@ double convertRTDResistanceToTemperature(double resistance)
     }
     return T;
 }
-double convertThermocoupleVoltageValueToNanovolts(double valueInVolts)
+double convertThermocoupleVoltageValueToMillivolts(double valueInVolts)
 {
-    return (valueInVolts * 10.0E9);
+    return (valueInVolts * 1000.0);
 }

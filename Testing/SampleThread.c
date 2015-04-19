@@ -9,6 +9,8 @@
 #include "Utilities/Logger/Logger.h"
 #include "Utilities/Printer/CStringConverter.h"
 
+#include "Devices/ADS1248.h"
+#include "Devices/LMP90100SignalsMeasurement.h"
 #include "Devices/LMP90100ControlSystem.h"
 #include "Devices/MCP4716.h"
 
@@ -24,16 +26,22 @@
 #include "cmsis_os.h"
 
 static const EThreadId mThreadId = EThreadId_SampleThread;
-static bool mIsThreadNotTerminated = true;
+//static bool mIsThreadNotTerminated = true;
 
 //static void testMCP4716(void);
 static const char* getLoggerPrefix(void);
+
+static void callback(EADS1248CallibrationType type, bool result)
+{
+    Logger_debug("%s: DONE! %s %u", getLoggerPrefix(), CStringConverter_EADS1248CallibrationType(type), result);
+}
 
 void SampleThread_thread(void const* arg)
 {
     ThreadStarter_run(mThreadId);
     
-    //LMP90100ControlSystem_changeMode(ELMP90100Mode_On_1_6775_SPS); 
+    osDelay(2000);
+    LMP90100SignalsMeasurement_changeMode(ELMP90100Mode_On_3_355_SPS); 
     
     /*
     osDelay(5000);
@@ -48,17 +56,15 @@ void SampleThread_thread(void const* arg)
     
     LMP90100_changeMode(ELMP90100Mode_On_1_6775_SPS);
     */
-    
-    osDelay(2000);
-    
-    while (mIsThreadNotTerminated)
-    {
-        TEvent* event = Event_wait(mThreadId, osWaitForever);
-        if (event->id == EEventId_DataToMasterTransmittedInd)
-        {
-            Logger_info("%s: TIMER.", getLoggerPrefix());
-        }
-    }
+    //osDelay(2000);
+    ADS1248_changeMode(EADS1248Mode_On);
+    ADS1248_setChannelGain(EADS1248GainValue_8);
+    ADS1248_setChannelSamplingSpeed(EADS1248SamplingSpeed_10SPS);
+    ADS1248_startCallibration(EADS1248CallibrationType_SelfOffset, callback);
+    osDelay(5000);
+    ADS1248_startReading();
+    osDelay(6000);
+    ADS1248_stopReading();
     
     Logger_warning("%s: Thread TERMINATED!", getLoggerPrefix());
     osDelay(osWaitForever);

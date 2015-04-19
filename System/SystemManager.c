@@ -129,7 +129,7 @@ void SystemManager_thread(void const* arg)
     Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_DebugSystem);
     initializeCommunicationWithMaster();
     //Logger_setLevel(ELoggerLevel_Debug);
-    Logger_setType(ELoggerType_EvalCOM1AndMasterMessage);
+    //Logger_setType(ELoggerType_EvalCOM1AndMasterMessage);
     
     Logger_info("%s: THREAD STARTED!", getLoggerPrefix());
 
@@ -155,6 +155,8 @@ void SystemManager_thread(void const* arg)
         LED_changeState(ELedState_Off);
         Logger_error("%s: Device configuring FAILED!", getLoggerPrefix());
     }
+    
+    notifyObserverAboutUnitReadyStatus(EUnitId_Nucleo, result);
     
     osDelay(osWaitForever);
 }
@@ -218,8 +220,8 @@ bool configurePeripheralsPhaseTwo(void)
     Logger_debug("%s: Configuring peripherals (Phase: 2/2): START.", getLoggerPrefix());
     
     //EXTI_initialize(EExtiType_EXTI0);
-    //EXTI_initialize(EExtiType_EXTI4);
-    //EXTI_initialize(EExtiType_EXTI9_5);
+    EXTI_initialize(EExtiType_EXTI4);
+    EXTI_initialize(EExtiType_EXTI9_5);
     //EXTI_initialize(EExtiType_EXTI15_10);
     
     Logger_debug("%s: Configuring peripherals (Phase: 2/2): DONE!", getLoggerPrefix());
@@ -235,19 +237,19 @@ bool configureDevices(void)
     
     result = ADS1248_initialize();
     mainResult = mainResult && result;
-    notifyObserverAboutUnitReadyStatus(EUnitId_ADS1248, result);
+    //notifyObserverAboutUnitReadyStatus(EUnitId_ADS1248, result);
     
-    result = LMP90100ControlSystem_initialize();
-    mainResult = mainResult && result;
-    notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100ControlSystem, result);
+    //result = LMP90100ControlSystem_initialize();
+    //mainResult = mainResult && result;
+    //notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100ControlSystem, result);
     
     result = LMP90100SignalsMeasurement_initialize();
     mainResult = mainResult && result;
-    notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100SignalsMeasurement, result);
+    //notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100SignalsMeasurement, result);
     
-    result = MCP4716_initialize();
-    mainResult = mainResult && result;
-    notifyObserverAboutUnitReadyStatus(EUnitId_MCP4716, result);
+    //result = MCP4716_initialize();
+    //mainResult = mainResult && result;
+    //notifyObserverAboutUnitReadyStatus(EUnitId_MCP4716, result);
     
     if (mainResult)
     {
@@ -289,7 +291,7 @@ void notifyObserverAboutUnitReadyStatus(EUnitId unitId, bool result)
 
 bool configureControllers(void)
 {
-    Logger_debug("%s: Configuring controllers: START.", getLoggerPrefix());\
+    Logger_debug("%s: Configuring controllers: START.", getLoggerPrefix());
     
     HeaterTemperatureController_initialize();
     HeaterTemperatureReader_initialize();

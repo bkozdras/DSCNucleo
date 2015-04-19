@@ -12,7 +12,7 @@
 static osMutexDef(mMutex);
 static osMutexId mMutexId = NULL;
 
-#define PIN_UNUSED  0xFF
+#define PIN_UNUSED  0x0000
 
 typedef struct _TPairPinCallback
 {
@@ -27,10 +27,10 @@ typedef struct _SExtiData
     bool isInitialized;
 } SExtiData;
 
-#define AVAILABLE_CALLBACKS_COUNT   1
+#define AVAILABLE_CALLBACKS_COUNT   7
 #define AVAILABLE_EXTIS             7
 
-static volatile TPairPinCallback mPairPinCallback [AVAILABLE_CALLBACKS_COUNT];
+static TPairPinCallback mPairPinCallback [AVAILABLE_CALLBACKS_COUNT];
 static SExtiData mPairExtiTypeIRQ [AVAILABLE_EXTIS] =
     {
         { EExtiType_EXTI0,      EXTI0_IRQn,     false },
@@ -42,11 +42,14 @@ static SExtiData mPairExtiTypeIRQ [AVAILABLE_EXTIS] =
         { EExtiType_EXTI15_10,  EXTI15_10_IRQn, false }
     };
 
+static TPairPinCallback* getPairPinCallback(TPin pin);
+static TPairPinCallback* getNewPairPinCallback(void);
+    
 void EXTI_setup(void)
 {
     for (u8 iter = 0; AVAILABLE_CALLBACKS_COUNT > iter; ++iter)
     {
-        mPairPinCallback[iter].pin = 0;
+        mPairPinCallback[iter].pin = PIN_UNUSED;
         mPairPinCallback[iter].callback = NULL;
     }
     
@@ -85,38 +88,73 @@ bool EXTI_isInitialized(EExtiType extiType)
 void EXTI_setCallback(TPin pin, void (*callback)(void))
 {
     osMutexWait(mMutexId, osWaitForever);
-    for (u8 iter = 0; AVAILABLE_CALLBACKS_COUNT > iter; ++iter)
+
+    TPairPinCallback* pairPinCallback = getPairPinCallback(pin);
+    if (!pairPinCallback)
     {
-        if (PIN_UNUSED == mPairPinCallback[iter].pin)
-        {
-            mPairPinCallback[iter].pin = pin;
-            mPairPinCallback[iter].callback = callback;
-            break;
-        }
+        pairPinCallback = getNewPairPinCallback();
     }
+    
+    if (pairPinCallback)
+    {
+        pairPinCallback->pin = pin;
+        pairPinCallback->callback = callback;
+        Logger_debug("EXTI: Set EXTI callback for Pin: 0x%02X.", pin);
+    }
+    else
+    {
+        Logger_warning("EXTI: Setting EXTI callback for Pin: 0x%02X failed. No free places!", pin);
+    }
+    
     osMutexRelease(mMutexId);
 }
 
 void EXTI_unsetCallback(TPin pin)
 {
     osMutexWait(mMutexId, osWaitForever);
+    
+    TPairPinCallback* pairPinCallback = getPairPinCallback(pin);
+    if (pairPinCallback)
+    {
+        pairPinCallback->pin = PIN_UNUSED;
+        pairPinCallback->callback = NULL;
+        Logger_debug("EXTI: Unset EXTI callback for Pin: 0x%02X.", pin);
+    }
+    
+    osMutexRelease(mMutexId);
+}
+
+TPairPinCallback* getPairPinCallback(TPin pin)
+{
     for (u8 iter = 0; AVAILABLE_CALLBACKS_COUNT > iter; ++iter)
     {
         if (pin == mPairPinCallback[iter].pin)
         {
-            mPairPinCallback[iter].pin = PIN_UNUSED;
-            mPairPinCallback[iter].callback = NULL;
-            break;
+            return &(mPairPinCallback[iter]);
         }
     }
-    osMutexRelease(mMutexId);
+    
+    return NULL;
+}
+
+TPairPinCallback* getNewPairPinCallback(void)
+{
+    for (u8 iter = 0; AVAILABLE_CALLBACKS_COUNT > iter; ++iter)
+    {
+        if (PIN_UNUSED == mPairPinCallback[iter].pin)
+        {
+            return &(mPairPinCallback[iter]);
+        }
+    }
+    
+    return NULL;
 }
 
 void HAL_GPIO_EXTI_Callback(TPin pin)
 {
     for (u8 iter = 0; AVAILABLE_CALLBACKS_COUNT > iter; ++iter)
     {
-        volatile TPairPinCallback* pairPinCallback = &(mPairPinCallback[iter]);
+        TPairPinCallback* pairPinCallback = &(mPairPinCallback[iter]);
         if (pin == pairPinCallback->pin)
         {
             if (pairPinCallback->callback)

@@ -164,6 +164,7 @@ void Logger_debug(const char* format, ...)
     }
     
     osMutexWait(mMutexLoggerId, osWaitForever);
+    bool isLogSentToMaster = false;
     TLogInd* logInd = NULL;
     logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
     logInd->severity = ELogSeverity_Debug;
@@ -189,12 +190,16 @@ void Logger_debug(const char* format, ...)
         if (mMasterMesssageLogIndCallback)
         {
             (*mMasterMesssageLogIndCallback)(logInd);
+            isLogSentToMaster = true;
         }
     }
     osMutexRelease(mMutexLoggerMasterMessageId);
     
     osMutexWait(mMutexLoggerId, osWaitForever);
-    MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+    if (!isLogSentToMaster)
+    {
+        MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+    }
     osMutexRelease(mMutexLoggerId);
 }
 
@@ -206,6 +211,7 @@ void Logger_info(const char* format, ...)
     }
     
     osMutexWait(mMutexLoggerId, osWaitForever);
+    bool isLogSentToMaster = false;
     TLogInd* logInd = NULL;
     logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
     logInd->severity = ELogSeverity_Info;
@@ -231,12 +237,16 @@ void Logger_info(const char* format, ...)
         if (mMasterMesssageLogIndCallback)
         {
             (*mMasterMesssageLogIndCallback)(logInd);
+            isLogSentToMaster = true;
         }
     }
     osMutexRelease(mMutexLoggerMasterMessageId);
     
     osMutexWait(mMutexLoggerId, osWaitForever);
-    MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+    if (!isLogSentToMaster)
+    {
+        MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+    }
     osMutexRelease(mMutexLoggerId);
 }
 
@@ -248,6 +258,7 @@ void Logger_warning(const char* format, ...)
     }
     
     osMutexWait(mMutexLoggerId, osWaitForever);
+    bool isLogSentToMaster = false;
     TLogInd* logInd = NULL;
     logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
     logInd->severity = ELogSeverity_Warning;
@@ -273,12 +284,16 @@ void Logger_warning(const char* format, ...)
         if (mMasterMesssageLogIndCallback)
         {
             (*mMasterMesssageLogIndCallback)(logInd);
+            isLogSentToMaster = true;
         }
     }
     osMutexRelease(mMutexLoggerMasterMessageId);
     
     osMutexWait(mMutexLoggerId, osWaitForever);
-    MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+    if (!isLogSentToMaster)
+    {
+        MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+    }
     osMutexRelease(mMutexLoggerId);
 }
 
@@ -290,6 +305,7 @@ void Logger_error(const char* format, ...)
     }
     
     osMutexWait(mMutexLoggerId, osWaitForever);
+    bool isLogSentToMaster = false;
     TLogInd* logInd = NULL;
     logInd = MasterDataMemoryManager_allocate(EMessageId_LogInd);
     logInd->severity = ELogSeverity_Error;
@@ -315,12 +331,16 @@ void Logger_error(const char* format, ...)
         if (mMasterMesssageLogIndCallback)
         {
             (*mMasterMesssageLogIndCallback)(logInd);
+            isLogSentToMaster = true;
         }
     }
     osMutexRelease(mMutexLoggerMasterMessageId);
     
     osMutexWait(mMutexLoggerId, osWaitForever);
-    MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+    if (!isLogSentToMaster)
+    {
+        MasterDataMemoryManager_free(EMessageId_LogInd, logInd);
+    }
     osMutexRelease(mMutexLoggerId);
 }
 

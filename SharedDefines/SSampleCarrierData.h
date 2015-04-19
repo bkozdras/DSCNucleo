@@ -10,7 +10,7 @@
 typedef struct _SThermocoupleData
 {
     EUnitId thermocouple;
-    double nanoVoltVoltage;
+    double milliVoltVoltage;
 } SThermocoupleData;
 
 typedef struct _SSampleCarrierData
