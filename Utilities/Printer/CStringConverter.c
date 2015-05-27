@@ -77,6 +77,12 @@ const char* CStringConverter_EMessageId(EMessageId messageId)
         case EMessageId_SetHeaterPowerResponse :
             return "SetHeaterPowerResponse";
         
+        case EMessageId_SetNewDeviceModeADS1248Request :
+            return "SetNewDeviceModeADS1248Request";
+        
+        case EMessageId_SetNewDeviceModeADS1248Response :
+            return "SetNewDeviceModeADS1248Response";
+        
         case EMessageId_SetNewDeviceModeLMP90100ControlSystemRequest :
             return "SetNewDeviceModeLMP90100ControlSystemRequest";
         
@@ -163,6 +169,12 @@ const char* CStringConverter_EMessageId(EMessageId messageId)
         
         case EMessageId_StopSegmentProgramResponse :
             return "StopSegmentProgramResponse";
+        
+        case EMessageId_SetHeaterTemperatureInFeedbackModeRequest :
+            return "SetHeaterTemperatureInFeedbackModeRequest";
+        
+        case EMessageId_SetHeaterTemperatureInFeedbackModeResponse :
+            return "SetHeaterTemperatureInFeedbackModeResponse";
         
         case EMessageId_Unknown :
             return "Unknown";

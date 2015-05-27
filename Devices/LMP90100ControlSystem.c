@@ -115,7 +115,7 @@ bool LMP90100ControlSystem_initialize(void)
     
     osMutexWait(mMutexId, osWaitForever);
     
-    EXTI_setCallback(GET_GPIO_PIN(LMP90100_CONTROL_SYSTEM_DRDYB_PIN), dataReadyCallback);
+    //EXTI_setCallback(GET_GPIO_PIN(LMP90100_CONTROL_SYSTEM_DRDYB_PIN), dataReadyCallback);
     //configureRegisters();
     bool result = turnOffDevice();
     
@@ -155,12 +155,14 @@ bool LMP90100ControlSystem_changeMode(ELMP90100Mode newMode)
     {
         if ( ( ELMP90100Mode_Off != mActualDeviceMode ) || ( ELMP90100Mode_Off == newMode ) )
         {
+            EXTI_unsetCallback(GET_GPIO_PIN(LMP90100_CONTROL_SYSTEM_DRDYB_PIN));
             status = turnOffDevice();
         }
         
         if ( status && ( ELMP90100Mode_Off != newMode ) )
         {
             status = configureRegisters(newMode);
+            EXTI_setCallback(GET_GPIO_PIN(LMP90100_CONTROL_SYSTEM_DRDYB_PIN), dataReadyCallback);
         }
         
         if (status)

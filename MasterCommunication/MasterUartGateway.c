@@ -14,6 +14,7 @@ static osMutexDef(mMutex);
 static osMutexId mMutexId = NULL;
 
 static u16 calculateCrcValue(u8 dataLength, TByte* data);
+static const char* getLoggerPrefix(void);
 
 void MasterUartGateway_setup(void)
 {
@@ -46,6 +47,7 @@ void MasterUartGateway_sendMessage(EMessageId messageType, void* message)
     packedMessage.crc = calculateCrcValue(packedMessage.length, packedMessage.data);
     
     Logger_debugSystem("MasterUartGateway: Message %s prepared and will be sent to Master.", CStringConverter_EMessageId(packedMessage.id));
+    
     MasterDataTransmitter_transmitAsync(&packedMessage);
     
     osMutexRelease(mMutexId);
@@ -58,12 +60,12 @@ void MasterUartGateway_handleReceivedMessage(TMessage message)
     bool verifyingResult = ( calculateCrcValue(message.length, message.data) == message.crc );
     if (verifyingResult)
     {
-        Logger_debugSystem("MasterUartGateway: Message %s received and passed CRC verification.", CStringConverter_EMessageId(message.id));
+        Logger_info("MasterUartGateway: Message %s received and passed CRC verification.", CStringConverter_EMessageId(message.id));
         
         CREATE_EVENT_ISR(DataFromMasterReceivedInd, EThreadId_MasterDataManager);
         CREATE_EVENT_MESSAGE(DataFromMasterReceivedInd);
         
-        CopyObject_TMessage(&(eventMessage->message), &message);
+        CopyObject_TMessage(&message, &(eventMessage->message));
         
         SEND_EVENT();
     }
@@ -79,4 +81,10 @@ void MasterUartGateway_handleReceivedMessage(TMessage message)
 u16 calculateCrcValue(u8 dataLength, TByte* data)
 {
     return 0;
+}
+
+const char* getLoggerPrefix(void)
+{
+    static const char* loggerPrefix = "MasterUartGateway";
+    return loggerPrefix;
 }

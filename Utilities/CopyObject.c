@@ -18,12 +18,15 @@ void CopyObject_SFaultIndication(SFaultIndication* source, SFaultIndication* des
 
 void CopyObject_SSampleCarrierData(SSampleCarrierData* source, SSampleCarrierData* dest)
 {
-    for (u8 iter = 0; THERMOCOUPLES_COUNT > iter; ++iter)
-    {
-        dest->data[iter].milliVoltVoltage = source->data[iter].milliVoltVoltage;
-        dest->data[iter].thermocouple = source->data[iter].thermocouple;
-    }
-    dest->rtdTemperatureValue = source->rtdTemperatureValue;
+    /*
+    dest->refThermocoupleValue = source->refThermocoupleValue;
+    dest->thermocouple1Value = source->thermocouple1Value;
+    dest->thermocouple2Value = source->thermocouple2Value;
+    dest->thermocouple3Value = source->thermocouple3Value;
+    dest->thermocouple4Value = source->thermocouple4Value;
+    dest->rtdTemperatureValue = source->rtdTemperatureValue;*/
+    dest->unitId = source->unitId;
+    dest->value = source->value;
 }
 
 void CopyObject_SPidTunes(SPidTunes* source, SPidTunes* dest)

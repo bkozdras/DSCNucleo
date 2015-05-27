@@ -17,6 +17,7 @@
 #include "SharedDefines/SSegmentData.h"
 #include "SharedDefines/ERegisteringDataType.h"
 #include "SharedDefines/SControllerData.h"
+#include "SharedDefines/EControllerDataType.h"
 
 #define MAX_LOG_SIZE 220
 
@@ -70,7 +71,9 @@ typedef struct _TReferenceTemperatureInd
 
 typedef struct _TControllerDataInd
 {
-    SControllerData data;
+    //SControllerData data;
+    EControllerDataType type;
+    float value;
 } TControllerDataInd;
 
 typedef struct _TSetHeaterPowerRequest
@@ -120,6 +123,7 @@ typedef struct _TSetChannelSamplingSpeedADS1248Response
 typedef struct _TStartRegisteringDataRequest
 {
     ERegisteringDataType dataType;
+    u16 period;
 } TStartRegisteringDataRequest;
 
 typedef struct _TStartRegisteringDataResponse
@@ -138,6 +142,17 @@ typedef struct _TStopRegisteringDataResponse
     ERegisteringDataType dataType;
     bool success;
 } TStopRegisteringDataResponse;
+
+typedef struct _TSetNewDeviceModeADS1248Request
+{
+    EADS1248Mode mode;
+} TSetNewDeviceModeADS1248Request;
+
+typedef struct _TSetNewDeviceModeADS1248Response
+{
+    EADS1248Mode mode;
+    bool success;
+} TSetNewDeviceModeADS1248Response;
 
 typedef struct _TSetNewDeviceModeLMP90100ControlSystemRequest
 {
@@ -302,5 +317,16 @@ typedef struct _TUnexpectedMasterMessageInd
 {
     u8 id;
 } TUnexpectedMasterMessageInd;
+
+typedef struct _TSetHeaterTemperatureInFeedbackModeRequest
+{
+    float temperature;
+} TSetHeaterTemperatureInFeedbackModeRequest;
+
+typedef struct _TSetHeaterTemperatureInFeedbackModeResponse
+{
+    float temperature;
+    bool success;
+} TSetHeaterTemperatureInFeedbackModeResponse;
 
 #endif

@@ -39,8 +39,8 @@ static TByte mLastUraByte = 0xFF;
 static float mRTD1GainValue = 8.0F;
 static float mRTD2GainValue = 16.0F;
 static const float mRTD1ComparatorResistanceValue = 100.0F; // 100 Ohm
-static const float mRTD1ReferenceResistanceValue = 1500.0F; // 100 Ohm
-static const float mRTD2ReferenceResistanceValue = 1000.0F; // 1 kOhm
+static const float mRTD1ReferenceResistanceValue = 1500.0F; // 1.5 kOhm
+static const float mRTD2ReferenceResistanceValue = 1500.0F; // 1.5 kOhm
 static float mActualRTD1Value = 0.0F;
 static float mActualRTD2Value = 0.0F;
 static ELMP90100Mode mActualDeviceMode = ELMP90100Mode_Off;
@@ -128,7 +128,6 @@ bool LMP90100SignalsMeasurement_initialize(void)
     
     osMutexWait(mMutexId, osWaitForever);
     
-    EXTI_setCallback(GET_GPIO_PIN(LMP90100_SIGNALS_MEASUREMENT_DRDYB_PIN), dataReadyCallback);
     bool result = turnOffDevice();
     
     osMutexRelease(mMutexId);
@@ -167,11 +166,13 @@ bool LMP90100SignalsMeasurement_changeMode(ELMP90100Mode newMode)
     {
         if ( ( ELMP90100Mode_Off != mActualDeviceMode ) || ( ELMP90100Mode_Off == newMode ) )
         {
+            EXTI_unsetCallback(GET_GPIO_PIN(LMP90100_SIGNALS_MEASUREMENT_DRDYB_PIN));
             status = turnOffDevice();
         }
         
         if ( status && ( ELMP90100Mode_Off != newMode ) )
         {
+            EXTI_setCallback(GET_GPIO_PIN(LMP90100_SIGNALS_MEASUREMENT_DRDYB_PIN), dataReadyCallback);
             status = configureRegisters(newMode);
         }
         
@@ -310,7 +311,7 @@ bool configureRegisters(ELMP90100Mode newMode)
     writeData[counter] = LMP90100_REG_ADC_DONE_DEFAULT;
     registerData[counter++] = LMP90100_REG_ADC_DONE;
     
-    writeData2[counter2] = 0x00;
+    writeData2[counter2] = 0x00;    
     writeData2[counter2] |= LMP90100_CHx_INPUTCN_BURNOUT_EN_DISABLED;
     writeData2[counter2] |= LMP90100_CHx_INPUTCN_VREF_SEL_2;
     writeData2[counter2] |= LMP90100_CHx_INPUTCN_VINP_VIN0;
@@ -422,20 +423,20 @@ bool readAdcData(u32* adcData, EReadChannel* readChannel)
     readData[0] &= LMP90100_SENDIAG_FLAGS_OFLO_SAMPLED_CHANNEL_MASK;
     Logger_debug("%s: Read channel: 0x%02X. CRC data: 0x%02X.", getLoggerPrefix(), readData[0], readData[4]);
     
-    if (verifyCrcByte(readData[4], &(readData[1]), 3))
-    {
+    //if (verifyCrcByte(readData[4], &(readData[1]), 3))
+    //{
         u32 newValue = 0x00;
         newValue |= (((u32)(readData[3])) & 0xFF);
         newValue |= ((((u32) (readData[2]) ) << 8) & 0xFF00);
         newValue |= ((((u32) (readData[1]) ) << 16) & 0xFF0000);
         *adcData = newValue;
         return true;
-    }
-    else
-    {
-        Logger_error("%s: CRC verification failed. ADC data is not correct!", getLoggerPrefix());
-        return false;
-    }
+    //}
+    //else
+    //{
+    //    Logger_error("%s: CRC verification failed. ADC data is not correct!", getLoggerPrefix());
+    //    return false;
+    //}
 }
 
 EReadChannel getReadChannel(TByte sendiagFlagsRegister)

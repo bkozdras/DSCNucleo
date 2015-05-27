@@ -28,7 +28,7 @@
 static const EThreadId mThreadId = EThreadId_SampleThread;
 //static bool mIsThreadNotTerminated = true;
 
-//static void testMCP4716(void);
+static void testMCP4716(void);
 static const char* getLoggerPrefix(void);
 
 static void callback(EADS1248CallibrationType type, bool result)
@@ -41,22 +41,13 @@ void SampleThread_thread(void const* arg)
     ThreadStarter_run(mThreadId);
     
     osDelay(2000);
-    LMP90100SignalsMeasurement_changeMode(ELMP90100Mode_On_3_355_SPS); 
     
+    //testMCP4716();
+    
+    //MCP4716_setOutputVoltage(1023);
     /*
-    osDelay(5000);
-    
-    LMP90100_changeMode(ELMP90100Mode_Off);
-    
-    osDelay(5000);
-    
-    LMP90100_changeMode(ELMP90100Mode_On_3_355_SPS);
-    
-    osDelay(5000);
-    
-    LMP90100_changeMode(ELMP90100Mode_On_1_6775_SPS);
-    */
-    //osDelay(2000);
+    LMP90100SignalsMeasurement_changeMode(ELMP90100Mode_On_1_6775_SPS);
+    //LMP90100ControlSystem_changeMode(ELMP90100Mode_On_1_6775_SPS);
     ADS1248_changeMode(EADS1248Mode_On);
     ADS1248_setChannelGain(EADS1248GainValue_8);
     ADS1248_setChannelSamplingSpeed(EADS1248SamplingSpeed_10SPS);
@@ -65,12 +56,14 @@ void SampleThread_thread(void const* arg)
     ADS1248_startReading();
     osDelay(6000);
     ADS1248_stopReading();
+    //LMP90100ControlSystem_changeMode(ELMP90100Mode_Off);
+    LMP90100SignalsMeasurement_changeMode(ELMP90100Mode_Off);*/
     
     Logger_warning("%s: Thread TERMINATED!", getLoggerPrefix());
     osDelay(osWaitForever);
 }
 
-/*
+
 void testMCP4716(void)
 {
     Logger_debug("%s: Testing MCP4716: Started!", getLoggerPrefix());
@@ -79,7 +72,7 @@ void testMCP4716(void)
     u16 valueToSet = 0x00;
     
     MCP4716_setOutputVoltage(valueToSet);
-    readValue = MCP4716_readOutputVoltage();
+    MCP4716_readOutputVoltage(&readValue);
     Logger_debug("%s: Set Value: (%u)(%f V).", getLoggerPrefix(), valueToSet, MCP4716_convertOutputVoltageToRealData(valueToSet));
     Logger_debug("%s: Get Value: (%u)(%f V).", getLoggerPrefix(), readValue, MCP4716_convertOutputVoltageToRealData(readValue));
     
@@ -90,7 +83,7 @@ void testMCP4716(void)
         valueToSet += 100U;
         
         MCP4716_setOutputVoltage(valueToSet);
-        readValue = MCP4716_readOutputVoltage();
+        MCP4716_readOutputVoltage(&readValue);
         
         Logger_debug("%s: Set Value: (%u)(%f V).", getLoggerPrefix(), valueToSet, MCP4716_convertOutputVoltageToRealData(valueToSet));
         Logger_debug("%s: Get Value: (%u)(%f V).", getLoggerPrefix(), readValue, MCP4716_convertOutputVoltageToRealData(readValue));
@@ -123,7 +116,9 @@ void testMCP4716(void)
     }
     
     Logger_debug("%s: Testing MCP4716: DONE!", getLoggerPrefix());
-}*/
+    osDelay(5000);
+    MCP4716_setOutputVoltage(0);
+}
 
 const char* getLoggerPrefix(void)
 {

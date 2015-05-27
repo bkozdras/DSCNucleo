@@ -16,17 +16,8 @@ THREAD_DEFINES(SampleCarrierDataManager, SampleCarrierDataManager)
 EVENT_HANDLER_PROTOTYPE(NewRTDValueInd)
 EVENT_HANDLER_PROTOTYPE(NewThermocoupleVoltageValueInd)
 
-static SSampleCarrierData mSampleCarrierData =
-    {
-        {
-            { EUnitId_ThermocoupleReference, 0.0 },
-            { EUnitId_Thermocouple1, 0.0 },
-            { EUnitId_Thermocouple2, 0.0 },
-            { EUnitId_Thermocouple3, 0.0 },
-            { EUnitId_Thermocouple4, 0.0 }
-        },
-        0.0F
-    };
+static SSampleCarrierData mSampleCarrierData;
+
 static SRTDPolynomialCoefficients mRTDPolynomialCoefficients =
     {
         -242.02,    /*R0*/
@@ -41,13 +32,13 @@ static bool mRTDDataReceived = false;
 static void (*mDataReadyCallback)(SSampleCarrierData*) = NULL;
 
 static void processIfSampleCarrierDataIsReady(void);
-static bool isSampleCarrierDataReady(void);
+//static bool isSampleCarrierDataReady(void);
 static void storeReceivedThermocoupleData(EUnitId thermocouple, double data);
 static void storeReceivedRTDData(double data);
 static void copySampleCarrierData(SSampleCarrierData* source, SSampleCarrierData* destination);
 static void cleanUpDataReceivedVariables(void);
 static double convertRTDResistanceToTemperature(double resistance);
-static double convertThermocoupleVoltageValueToMillivolts(double valueInVolts);
+static double convertThermocoupleVoltageValueToMicrovolts(double valueInVolts);
 
 THREAD(SampleCarrierDataManager)
 {
@@ -77,9 +68,9 @@ EVENT_HANDLER(NewThermocoupleVoltageValueInd)
     
     Logger_debug("%s: Received new %s value: %.6f V.", getLoggerPrefix(), CStringConverter_EUnitId(event->thermocouple), event->value);
     
-    double thermocoupleNanoVoltValue = convertThermocoupleVoltageValueToMillivolts(event->value);
-    Logger_debug("%s: %s value: %.5f mV. Storing data.", getLoggerPrefix(), CStringConverter_EUnitId(event->thermocouple), thermocoupleNanoVoltValue);
-    storeReceivedThermocoupleData(event->thermocouple, thermocoupleNanoVoltValue);
+    double thermocoupleMicroVoltValue = convertThermocoupleVoltageValueToMicrovolts(event->value);
+    Logger_debug("%s: %s value: %.5f uV. Storing data.", getLoggerPrefix(), CStringConverter_EUnitId(event->thermocouple), thermocoupleMicroVoltValue);
+    storeReceivedThermocoupleData(event->thermocouple, thermocoupleMicroVoltValue);
     processIfSampleCarrierDataIsReady();
 }
 
@@ -138,26 +129,26 @@ void SampleCarrierDataManager_deregisterDataReadyCallback(void)
 
 void processIfSampleCarrierDataIsReady(void)
 {
-    if (isSampleCarrierDataReady())
+    //if (isSampleCarrierDataReady())
     {
-        Logger_debug("%s: All sample carrier data is ready. Processing with stored data.");
+        Logger_debug("%s: All sample carrier data is ready. Processing with stored data.", getLoggerPrefix());
         if (mDataReadyCallback)
         {
-            Logger_debug("%s: Callback for data ready registered. Processing with stored data...", getLoggerPrefix());
+            Logger_debug("%s: Callback for data ready registered. Processing with stored data...", getLoggerPrefix(), getLoggerPrefix());
             (*mDataReadyCallback)(&mSampleCarrierData);
         }
         else
         {
             Logger_debug("%s: Callback for data ready is not registered. Processing with stored data skipped.");
         }
-        cleanUpDataReceivedVariables();
+        //cleanUpDataReceivedVariables();
     }
-    else
-    {
-        Logger_debug("%s: All sample carrier data is not ready yet.", getLoggerPrefix());
-    }
+    //else
+    //{
+        //Logger_debug("%s: All sample carrier data is not ready yet.", getLoggerPrefix());
+    //}
 }
-
+/*
 bool isSampleCarrierDataReady(void)
 {
     for (u8 iter = 0; THERMOCOUPLES_COUNT > iter; ++iter)
@@ -174,34 +165,74 @@ bool isSampleCarrierDataReady(void)
     }
     
     return true;
-}
+}*/
 
 void storeReceivedThermocoupleData(EUnitId thermocouple, double data)
 {
-    for (u8 iter = 0; THERMOCOUPLES_COUNT > iter; ++iter)
+    /*
+    switch (thermocouple)
     {
-        if (mSampleCarrierData.data[iter].thermocouple == thermocouple)
+        case EUnitId_ThermocoupleReference :
         {
-            mSampleCarrierData.data[iter].milliVoltVoltage = data;
-            mThermocouplesDataReceived[iter] = true;
+            mSampleCarrierData.refThermocoupleValue = data;
+            mThermocouplesDataReceived[0] = true;
+            break;
         }
-    }
+        
+        case EUnitId_Thermocouple1 :
+        {
+            mSampleCarrierData.thermocouple1Value = data;
+            mThermocouplesDataReceived[1] = true;
+            break;
+        }
+        
+        case EUnitId_Thermocouple2 :
+        {
+            mSampleCarrierData.thermocouple2Value = data;
+            mThermocouplesDataReceived[2] = true;
+            break;
+        }
+        
+        case EUnitId_Thermocouple3 :
+        {
+            mSampleCarrierData.thermocouple3Value = data;
+            mThermocouplesDataReceived[3] = true;
+            break;
+        }
+        
+        case EUnitId_Thermocouple4 :
+        {
+            mSampleCarrierData.thermocouple4Value = data;
+            mThermocouplesDataReceived[4] = true;
+            break;
+        }
+        
+        default :
+            break;
+    }*/
+    mSampleCarrierData.unitId = thermocouple;
+    mSampleCarrierData.value = data;
 }
 
 void storeReceivedRTDData(double data)
 {
-    mSampleCarrierData.rtdTemperatureValue = data;
+    //mSampleCarrierData.rtdTemperatureValue = data;
+    mSampleCarrierData.unitId = EUnitId_Rtd1Pt100;
+    mSampleCarrierData.value = data;
     mRTDDataReceived = true;
 }
 
 void copySampleCarrierData(SSampleCarrierData* source, SSampleCarrierData* destination)
 {
+    /*
     destination->rtdTemperatureValue = source->rtdTemperatureValue;
-    for (u8 iter = 0; THERMOCOUPLES_COUNT > iter; ++iter)
-    {
-        destination->data[iter].thermocouple = source->data[iter].thermocouple;
-        destination->data[iter].milliVoltVoltage = source->data[iter].milliVoltVoltage;
-    }
+    destination->thermocouple1Value = source->thermocouple1Value;
+    destination->thermocouple2Value = source->thermocouple2Value;
+    destination->thermocouple3Value = source->thermocouple3Value;
+    destination->thermocouple4Value = source->thermocouple4Value;
+    destination->refThermocoupleValue = source->refThermocoupleValue;*/
+    destination->unitId = source->unitId;
+    destination->value = source->value;
 }
 
 void cleanUpDataReceivedVariables(void)
@@ -215,15 +246,29 @@ void cleanUpDataReceivedVariables(void)
 
 double convertRTDResistanceToTemperature(double resistance)
 {
-    double T = mRTDPolynomialCoefficients.values[0];
+    /*double T = mRTDPolynomialCoefficients.values[0];
     for (u8 iter = 1; RTD_POLYNOMIAL_DEGREE >= iter; ++iter)
     {
         T += mRTDPolynomialCoefficients.values[iter] * resistance;
         resistance *= resistance;
     }
-    return T;
+    return T;*/
+    
+    //const float R0 = 100;
+    //float sqrtVal;
+    //arm_sqrt_f32(R0 * R0 * + 3.9083E-3 * 3.9083E-3 - 4 * R0 * -5.775E-7 * (R0 - resistance), &sqrtVal);
+    //return ((-R0 * 3.9083E-3 + sqrtVal) / (2 * R0 * -5.775E-7));
+    
+    const float z1 = -3.9083E-3;
+    const float z2 = 17.58480889E-6;
+    const float z3 = -23.10E-9;
+    const float z4 = -1.155E-6;
+    
+    float sqrtVal = 0.0F;
+    arm_sqrt_f32(z2 + z3 * resistance, &sqrtVal);
+    return ( (z1 + sqrtVal) / (z4) );
 }
-double convertThermocoupleVoltageValueToMillivolts(double valueInVolts)
+double convertThermocoupleVoltageValueToMicrovolts(double valueInVolts)
 {
-    return (valueInVolts * 1000.0);
+    return (valueInVolts * 10E6);
 }

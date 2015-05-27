@@ -45,10 +45,9 @@ THREAD(MasterDataTransmitter)
 
 EVENT_HANDLER(TransmitData)
 {
-    osMutexWait(mMutexBufferOverflowId, osWaitForever);
+    //osMutexWait(mMutexBufferOverflowId, osWaitForever);
     
     mMessagesBufferHead = getNextBufferIndex(mMessagesBufferHead);
-    --mNumberOfWaitingMessagesInBuffer;
     
     Logger_debugSystem("%s: Processing with message from TX buffer: %u.", getLoggerPrefix(), mMessagesBufferHead);
     
@@ -133,7 +132,10 @@ EVENT_HANDLER(DataToMasterTransmittedInd)
         
         case EMessagePart_End :
         {
+            mTransmittingMessagePart = EMessagePart_Unknown;
+            
             MasterDataMemoryManager_free(mTransmittingMessage->id, mTransmittingMessage->data);
+            --mNumberOfWaitingMessagesInBuffer;
             
             if (mMessagesBufferHead == mMessagesBufferTail)
             {
@@ -159,10 +161,13 @@ EVENT_HANDLER(DataToMasterTransmittedInd)
                 SEND_EVENT();
             }
             
-            osMutexRelease(mMutexBufferOverflowId);
+            //osMutexRelease(mMutexBufferOverflowId);
             
             break;
         }
+        
+        default :
+            break;
     }
 }
 
@@ -191,7 +196,8 @@ void MasterDataTransmitter_transmitAsync(TMessage* message)
     {
         osMutexRelease(mMutexId);
         Logger_debugSystem("%s: TX buffer is full. Waiting for free place in buffer...", getLoggerPrefix());
-        osMutexWait(mMutexBufferOverflowId, osWaitForever);
+        osDelay(1);
+        //osMutexWait(mMutexBufferOverflowId, osWaitForever);
         osMutexWait(mMutexId, osWaitForever);
         nextTail = getNextBufferIndex(mMessagesBufferTail);
     }

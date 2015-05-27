@@ -5,6 +5,7 @@
 #include "HardwareSettings/GPIODefines.h"
 #include "FaultManagement/FaultIndication.h"
 #include "Utilities/Logger/Logger.h"
+#include "Utilities/Printer/CStringConverter.h"
 
 #include "Peripherals/UART1.h"
 
@@ -72,15 +73,17 @@ bool UART1_transmit(TByte* data, const u16 dataLength)
 {
     if (mIsInitialized)
     {
-        if (HAL_OK != HAL_UART_Transmit_DMA(&mUart1Handle, data, dataLength))
+        HAL_StatusTypeDef status = HAL_UART_Transmit_DMA(&mUart1Handle, data, dataLength);
+        if (HAL_OK != status)
         {
+            Logger_error("UART1: Error in transmitting data: %s.", CStringConverter_HAL_StatusTypeDef(status));
             return false;
         }
         
         Logger_debugSystem("UART1: Transmitted %u bytes:", dataLength);
         for (u16 iter = 0; dataLength > iter; ++iter)
         {
-            //Logger_debugSystemMasterDataExtended("UART1: Byte[%u]: 0x%02X.", iter, data[iter]);
+            Logger_debugSystemMasterDataExtended("UART1: Byte[%u]: 0x%02X.", iter, data[iter]);
         }
         
         return true;
@@ -93,8 +96,10 @@ bool UART1_receive(TByte* data, const u16 dataLength)
 {
     if (mIsInitialized)
     {
-        if (HAL_OK != HAL_UART_Receive_DMA(&mUart1Handle, data, dataLength))
+        HAL_StatusTypeDef status = HAL_UART_Receive_DMA(&mUart1Handle, data, dataLength);
+        if (HAL_OK != status)
         {
+            Logger_error("UART1: Error in receiving data: %s.", CStringConverter_HAL_StatusTypeDef(status));
             return false;
         }
 
@@ -194,7 +199,7 @@ void mspInit(UART_HandleTypeDef* uartHandle)
   mDMAHandleRx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
   mDMAHandleRx.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
   mDMAHandleRx.Init.Mode                = DMA_NORMAL;
-  mDMAHandleRx.Init.Priority            = DMA_PRIORITY_HIGH;
+  mDMAHandleRx.Init.Priority            = DMA_PRIORITY_VERY_HIGH;
   mDMAHandleRx.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
   mDMAHandleRx.Init.FIFOThreshold       = DMA_FIFO_THRESHOLD_FULL;
   mDMAHandleRx.Init.MemBurst            = DMA_MBURST_INC4;
@@ -207,15 +212,15 @@ void mspInit(UART_HandleTypeDef* uartHandle)
     
   //##-4- Configure the NVIC for DMA #########################################
   // NVIC configuration for DMA transfer complete interrupt (USARTx_TX)
-  HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 7, 1);
+  HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 6, 1);
   HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
     
   // NVIC configuration for DMA transfer complete interrupt (USARTx_RX)
-  HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 7, 0);   
+  HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 5, 0);   
   HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
   
   // NVIC configuration for USART TC interrupt
-  HAL_NVIC_SetPriority(USART1_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(USART1_IRQn, 5, 1);
   HAL_NVIC_EnableIRQ(USART1_IRQn);
 }
 

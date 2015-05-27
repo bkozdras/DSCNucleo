@@ -18,6 +18,7 @@ bool ADS1248_changeMode(EADS1248Mode newMode);
 bool ADS1248_startCallibration(EADS1248CallibrationType callibrationType, void (*callibrationDoneNotifyCallback)(EADS1248CallibrationType, bool));
 bool ADS1248_startReading(void);
 bool ADS1248_stopReading(void);
+bool ADS1248_isReadingStarted(void);
 bool ADS1248_getThermocoupleVoltageValue(EUnitId thermocouple, double* value);
 bool ADS1248_setChannelGain(EADS1248GainValue gainValue);
 bool ADS1248_setChannelSamplingSpeed(EADS1248SamplingSpeed samplingSpeed);

@@ -119,24 +119,23 @@ void createThreads(void)
     THREAD_CREATE(SampleCarrierDataManager, AboveNormal, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(ReferenceTemperatureReader, Normal, configMINIMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataManager, Low, configNORMAL_STACK_SIZE);
-    THREAD_CREATE(MasterDataReceiver, Normal, configNORMAL_STACK_SIZE);
+    THREAD_CREATE(MasterDataReceiver, High, configNORMAL_STACK_SIZE);
     THREAD_CREATE(MasterDataTransmitter, Low, configMAXIMUM_STACK_SIZE);
-    THREAD_CREATE(SampleThread, Normal, configMINIMAL_STACK_SIZE);
+    //THREAD_CREATE(SampleThread, Normal, configMINIMAL_STACK_SIZE);
 }
 
 void SystemManager_thread(void const* arg)
 {
-    Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_DebugSystem);
+    Logger_initialize(ELoggerType_EvalCOM1, ELoggerLevel_DebugSystemMasterDataExtended);
     initializeCommunicationWithMaster();
-    //Logger_setLevel(ELoggerLevel_Debug);
+    Logger_setLevel(ELoggerLevel_Info);
     //Logger_setType(ELoggerType_EvalCOM1AndMasterMessage);
     
     Logger_info("%s: THREAD STARTED!", getLoggerPrefix());
-
     checkKernelStatus();
     
     Logger_info("%s: Started configuring device!", getLoggerPrefix());
-    
+    Logger_error("%s: MESSAGE LENGTH: %u.", getLoggerPrefix(), MasterDataMemoryManager_getLength(EMessageId_SampleCarrierDataInd));
     bool result = true;
     
     conditionalExecutor(configurePeripheralsPhaseOne, &result);
@@ -157,6 +156,7 @@ void SystemManager_thread(void const* arg)
     }
     
     notifyObserverAboutUnitReadyStatus(EUnitId_Nucleo, result);
+    //Logger_setLevel(ELoggerLevel_Info);
     
     osDelay(osWaitForever);
 }
@@ -219,10 +219,10 @@ bool configurePeripheralsPhaseTwo(void)
 {
     Logger_debug("%s: Configuring peripherals (Phase: 2/2): START.", getLoggerPrefix());
     
-    //EXTI_initialize(EExtiType_EXTI0);
+    EXTI_initialize(EExtiType_EXTI0);
     EXTI_initialize(EExtiType_EXTI4);
     EXTI_initialize(EExtiType_EXTI9_5);
-    //EXTI_initialize(EExtiType_EXTI15_10);
+    EXTI_initialize(EExtiType_EXTI15_10);
     
     Logger_debug("%s: Configuring peripherals (Phase: 2/2): DONE!", getLoggerPrefix());
     return true;
@@ -237,19 +237,33 @@ bool configureDevices(void)
     
     result = ADS1248_initialize();
     mainResult = mainResult && result;
-    //notifyObserverAboutUnitReadyStatus(EUnitId_ADS1248, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_ADS1248, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_ThermocoupleReference, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_Thermocouple1, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_Thermocouple2, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_Thermocouple3, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_Thermocouple4, result);
     
-    //result = LMP90100ControlSystem_initialize();
-    //mainResult = mainResult && result;
-    //notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100ControlSystem, result);
+    result = LMP90100ControlSystem_initialize();
+    mainResult = mainResult && result;
+    notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100ControlSystem, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_RtdPt1000, result);
     
     result = LMP90100SignalsMeasurement_initialize();
     mainResult = mainResult && result;
-    //notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100SignalsMeasurement, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_LMP90100SignalsMeasurement, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_Rtd1Pt100, result);
+    notifyObserverAboutUnitReadyStatus(EUnitId_Rtd2Pt100, result);
     
-    //result = MCP4716_initialize();
-    //mainResult = mainResult && result;
-    //notifyObserverAboutUnitReadyStatus(EUnitId_MCP4716, result);
+    result = MCP4716_initialize();
+    mainResult = mainResult && result;
+    notifyObserverAboutUnitReadyStatus(EUnitId_MCP4716, result);
+    
+    {
+        // Temporaty - fixed after DRV595 proper handling
+        notifyObserverAboutUnitReadyStatus(EUnitId_DRV595, true);
+        notifyObserverAboutUnitReadyStatus(EUnitId_Peltier, true);
+    }
     
     if (mainResult)
     {
@@ -315,7 +329,7 @@ void startThreads(void)
     KernelManager_startThread(mThreadId, EThreadId_LMP90100SignalsMeasurementController);
     KernelManager_startThread(mThreadId, EThreadId_ReferenceTemperatureReader);
     KernelManager_startThread(mThreadId, EThreadId_SampleCarrierDataManager);
-    KernelManager_startThread(mThreadId, EThreadId_SampleThread);
+    //KernelManager_startThread(mThreadId, EThreadId_SampleThread);
     KernelManager_startThread(mThreadId, EThreadId_StaticSegmentProgramExecutor);
     
     Logger_debug("%s: Starting threads: DONE!", getLoggerPrefix());

@@ -49,7 +49,7 @@ EVENT_HANDLER(NewRTDValueInd)
     }
     else
     {
-        Logger_debug("%s: Callback for data ready is not registered. Processing with stored data skipped.");
+        Logger_debug("%s: Callback for data ready is not registered. Processing with stored data skipped.", getLoggerPrefix());
     }
 }
 
@@ -95,11 +95,26 @@ void ReferenceTemperatureReader_deregisterDataReadyCallback(void)
 
 float convertRTDResistanceToTemperature(float resistance)
 {
+    /*
     float T = mRTDPolynomialCoefficients[0];
     for (u8 iter = 1; 3 > iter; ++iter)
     {
         T += mRTDPolynomialCoefficients[iter] * resistance;
         resistance *= resistance;
     }
-    return T;
+    return T;*/
+    
+    //const float R0 = 100;
+    //float sqrtVal;
+    //arm_sqrt_f32(R0 * R0 * + 3.9083E-3 * 3.9083E-3 - 4 * R0 * -5.775E-7 * (R0 - resistance), &sqrtVal);
+    //return ((-R0 * 3.9083E-3 + sqrtVal) / (2 * R0 * -5.775E-7));
+    
+    const float z1 = -3.9083E-3;
+    const float z2 = 17.58480889E-6;
+    const float z3 = -23.10E-9;
+    const float z4 = -1.155E-6;
+    
+    float sqrtVal = 0.0F;
+    arm_sqrt_f32(z2 + z3 * resistance, &sqrtVal);
+    return ( (z1 + sqrtVal) / (z4) );
 }

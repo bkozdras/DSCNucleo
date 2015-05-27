@@ -2,21 +2,25 @@
 
 #define _S_SAMPLE_CARRIER_DATA_H_
 
-#include "SharedDefines/EUnitId.h"
-#include "Defines/CommonDefines.h"
-
 #define THERMOCOUPLES_COUNT 5
 
-typedef struct _SThermocoupleData
+#include "SharedDefines/EUnitId.h"
+
+/*
+typedef struct _SSampleCarrierData
 {
-    EUnitId thermocouple;
-    double milliVoltVoltage;
-} SThermocoupleData;
+    double refThermocoupleValue;
+    double thermocouple1Value;
+    double thermocouple2Value;
+    double thermocouple3Value;
+    double thermocouple4Value;
+    double rtdTemperatureValue;
+} SSampleCarrierData;*/
 
 typedef struct _SSampleCarrierData
 {
-    SThermocoupleData data [THERMOCOUPLES_COUNT];
-    double rtdTemperatureValue;
+    EUnitId unitId;
+    float value;
 } SSampleCarrierData;
 
 #endif

@@ -83,6 +83,7 @@ void HeaterTemperatureReader_deregisterNewTemperatureValueCallback(void)
 
 float convertRTDResistanceToTemperature(float resistance)
 { 
+    /*
     float A = 3.9083E-3F; 
     float B = -5.775E-7F;
     float R = resistance;
@@ -106,5 +107,14 @@ float convertRTDResistanceToTemperature(float resistance)
         T -= temp; 
         T /= (2.0F * B); 
         return T; 
-    } 
+    }*/
+    
+    const float z1 = -3.9083E-3;
+    const float z2 = 1.758480889E-5;
+    const float z3 = -2.310E-9;
+    const float z4 = -1.155E-6;
+    
+    float sqrtVal = 0.0F;
+    arm_sqrt_f32(z2 + z3 * resistance, &sqrtVal);
+    return ( (z1 + sqrtVal) / (z4) );
 }

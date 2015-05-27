@@ -56,7 +56,7 @@ DEFINE_MESSAGE_HEAP(ResetUnitResponse, 1);
 DEFINE_MESSAGE_HEAP(SampleCarrierDataInd, 5);
 DEFINE_MESSAGE_HEAP(HeaterTemperatureInd, 5);
 DEFINE_MESSAGE_HEAP(ReferenceTemperatureInd, 5);
-DEFINE_MESSAGE_HEAP(ControllerDataInd, 5);
+DEFINE_MESSAGE_HEAP(ControllerDataInd, 15);
 DEFINE_MESSAGE_HEAP(SetHeaterPowerRequest, 2);
 DEFINE_MESSAGE_HEAP(SetHeaterPowerResponse, 2);
 DEFINE_MESSAGE_HEAP(CallibreADS1248Request, 1);
@@ -65,10 +65,12 @@ DEFINE_MESSAGE_HEAP(SetChannelGainADS1248Request, 1);
 DEFINE_MESSAGE_HEAP(SetChannelGainADS1248Response, 1);
 DEFINE_MESSAGE_HEAP(SetChannelSamplingSpeedADS1248Request, 1);
 DEFINE_MESSAGE_HEAP(SetChannelSamplingSpeedADS1248Response, 1);
-DEFINE_MESSAGE_HEAP(StartRegisteringDataRequest, 1);
+DEFINE_MESSAGE_HEAP(StartRegisteringDataRequest, 5);
 DEFINE_MESSAGE_HEAP(StartRegisteringDataResponse, 1);
 DEFINE_MESSAGE_HEAP(StopRegisteringDataRequest, 1);
 DEFINE_MESSAGE_HEAP(StopRegisteringDataResponse, 1);
+DEFINE_MESSAGE_HEAP(SetNewDeviceModeADS1248Request, 1);
+DEFINE_MESSAGE_HEAP(SetNewDeviceModeADS1248Response, 1);
 DEFINE_MESSAGE_HEAP(SetNewDeviceModeLMP90100ControlSystemRequest, 1);
 DEFINE_MESSAGE_HEAP(SetNewDeviceModeLMP90100ControlSystemResponse, 1);
 DEFINE_MESSAGE_HEAP(SetNewDeviceModeLMP90100SignalsMeasurementRequest, 1);
@@ -97,8 +99,10 @@ DEFINE_MESSAGE_HEAP(StopReferenceTemperatureStabilizationRequest, 1);
 DEFINE_MESSAGE_HEAP(StopReferenceTemperatureStabilizationResponse, 1);
 DEFINE_MESSAGE_HEAP(SetRTDPolynomialCoefficientsRequest, 2);
 DEFINE_MESSAGE_HEAP(SetRTDPolynomialCoefficientsResponse, 2);
-DEFINE_MESSAGE_HEAP(UnitReadyInd, 8);
+DEFINE_MESSAGE_HEAP(UnitReadyInd, 14);
 DEFINE_MESSAGE_HEAP(UnexpectedMasterMessageInd, 2);
+DEFINE_MESSAGE_HEAP(SetHeaterTemperatureInFeedbackModeRequest, 2);
+DEFINE_MESSAGE_HEAP(SetHeaterTemperatureInFeedbackModeResponse, 2);
 
 static osMutexDef(mMutex);
 static osMutexId mMutexId = NULL;
@@ -120,6 +124,7 @@ void MasterDataMemoryManager_setup(void)
     CREATE_EVENT_HEAP(HeaterTemperatureInd);
     CREATE_EVENT_HEAP(ReferenceTemperatureInd);
     CREATE_EVENT_HEAP(ControllerDataInd);
+    CREATE_EVENT_HEAP(SetHeaterPowerRequest);
     CREATE_EVENT_HEAP(SetHeaterPowerResponse);
     CREATE_EVENT_HEAP(CallibreADS1248Request);
     CREATE_EVENT_HEAP(CallibreADS1248Response);
@@ -131,6 +136,8 @@ void MasterDataMemoryManager_setup(void)
     CREATE_EVENT_HEAP(StartRegisteringDataResponse);
     CREATE_EVENT_HEAP(StopRegisteringDataRequest);
     CREATE_EVENT_HEAP(StopRegisteringDataResponse);
+    CREATE_EVENT_HEAP(SetNewDeviceModeADS1248Request);
+    CREATE_EVENT_HEAP(SetNewDeviceModeADS1248Response);
     CREATE_EVENT_HEAP(SetNewDeviceModeLMP90100ControlSystemRequest);
     CREATE_EVENT_HEAP(SetNewDeviceModeLMP90100ControlSystemResponse);
     CREATE_EVENT_HEAP(SetNewDeviceModeLMP90100SignalsMeasurementRequest);
@@ -161,6 +168,8 @@ void MasterDataMemoryManager_setup(void)
     CREATE_EVENT_HEAP(SetRTDPolynomialCoefficientsResponse);
     CREATE_EVENT_HEAP(UnitReadyInd);
     CREATE_EVENT_HEAP(UnexpectedMasterMessageInd);
+    CREATE_EVENT_HEAP(SetHeaterTemperatureInFeedbackModeRequest);
+    CREATE_EVENT_HEAP(SetHeaterTemperatureInFeedbackModeResponse);
 }
 
 void* MasterDataMemoryManager_allocate(EMessageId messageId)
@@ -202,6 +211,8 @@ u8 MasterDataMemoryManager_getLength(EMessageId messageId)
     GET_MESSAGE_LENGTH(StartRegisteringDataResponse);
     GET_MESSAGE_LENGTH(StopRegisteringDataRequest);
     GET_MESSAGE_LENGTH(StopRegisteringDataResponse);
+    GET_MESSAGE_LENGTH(SetNewDeviceModeADS1248Request);
+    GET_MESSAGE_LENGTH(SetNewDeviceModeADS1248Response);
     GET_MESSAGE_LENGTH(SetNewDeviceModeLMP90100ControlSystemRequest);
     GET_MESSAGE_LENGTH(SetNewDeviceModeLMP90100ControlSystemResponse);
     GET_MESSAGE_LENGTH(SetNewDeviceModeLMP90100SignalsMeasurementRequest);
@@ -232,6 +243,8 @@ u8 MasterDataMemoryManager_getLength(EMessageId messageId)
     GET_MESSAGE_LENGTH(SetRTDPolynomialCoefficientsResponse);
     GET_MESSAGE_LENGTH(UnitReadyInd);
     GET_MESSAGE_LENGTH(UnexpectedMasterMessageInd);
+    GET_MESSAGE_LENGTH(SetHeaterTemperatureInFeedbackModeRequest);
+    GET_MESSAGE_LENGTH(SetHeaterTemperatureInFeedbackModeResponse);
     
     assert_param(0);
     
@@ -264,6 +277,8 @@ void* allocate(EMessageId messageId)
     ALLOCATE_MESSAGE_CALLOC_HANDLER(StartRegisteringDataResponse);
     ALLOCATE_MESSAGE_CALLOC_HANDLER(StopRegisteringDataRequest);
     ALLOCATE_MESSAGE_CALLOC_HANDLER(StopRegisteringDataResponse);
+    ALLOCATE_MESSAGE_CALLOC_HANDLER(SetNewDeviceModeADS1248Request);
+    ALLOCATE_MESSAGE_CALLOC_HANDLER(SetNewDeviceModeADS1248Response);
     ALLOCATE_MESSAGE_CALLOC_HANDLER(SetNewDeviceModeLMP90100ControlSystemRequest);
     ALLOCATE_MESSAGE_CALLOC_HANDLER(SetNewDeviceModeLMP90100ControlSystemResponse);
     ALLOCATE_MESSAGE_CALLOC_HANDLER(SetNewDeviceModeLMP90100SignalsMeasurementRequest);
@@ -294,6 +309,8 @@ void* allocate(EMessageId messageId)
     ALLOCATE_MESSAGE_CALLOC_HANDLER(SetRTDPolynomialCoefficientsResponse);
     ALLOCATE_MESSAGE_CALLOC_HANDLER(UnitReadyInd);
     ALLOCATE_MESSAGE_CALLOC_HANDLER(UnexpectedMasterMessageInd);
+    ALLOCATE_MESSAGE_CALLOC_HANDLER(SetHeaterTemperatureInFeedbackModeRequest);
+    ALLOCATE_MESSAGE_CALLOC_HANDLER(SetHeaterTemperatureInFeedbackModeResponse);
     
     assert_param(0);
     
@@ -324,6 +341,8 @@ void free(EMessageId messageId, void* allocatedMemory)
     FREE_ALLOCATED_MESSAGE_HANDLER(StartRegisteringDataResponse);
     FREE_ALLOCATED_MESSAGE_HANDLER(StopRegisteringDataRequest);
     FREE_ALLOCATED_MESSAGE_HANDLER(StopRegisteringDataResponse);
+    FREE_ALLOCATED_MESSAGE_HANDLER(SetNewDeviceModeADS1248Request);
+    FREE_ALLOCATED_MESSAGE_HANDLER(SetNewDeviceModeADS1248Response);
     FREE_ALLOCATED_MESSAGE_HANDLER(SetNewDeviceModeLMP90100ControlSystemRequest);
     FREE_ALLOCATED_MESSAGE_HANDLER(SetNewDeviceModeLMP90100ControlSystemResponse);
     FREE_ALLOCATED_MESSAGE_HANDLER(SetNewDeviceModeLMP90100SignalsMeasurementRequest);
@@ -354,6 +373,8 @@ void free(EMessageId messageId, void* allocatedMemory)
     FREE_ALLOCATED_MESSAGE_HANDLER(SetRTDPolynomialCoefficientsResponse);
     FREE_ALLOCATED_MESSAGE_HANDLER(UnitReadyInd);
     FREE_ALLOCATED_MESSAGE_HANDLER(UnexpectedMasterMessageInd);
+    FREE_ALLOCATED_MESSAGE_HANDLER(SetHeaterTemperatureInFeedbackModeRequest);
+    FREE_ALLOCATED_MESSAGE_HANDLER(SetHeaterTemperatureInFeedbackModeResponse);
     
     assert_param(0);
 }

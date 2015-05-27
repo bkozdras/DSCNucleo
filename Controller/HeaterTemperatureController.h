@@ -9,6 +9,7 @@
 #include "SharedDefines/SPidTunes.h"
 #include "SharedDefines/SProcessModelParameters.h"
 #include "SharedDefines/SControllerData.h"
+#include "SharedDefines/EControllerDataType.h"
 
 void HeaterTemperatureController_setup(void);
 void HeaterTemperatureController_initialize(void);
@@ -26,7 +27,7 @@ float HeaterTemperatureController_getControllerError(void);
 bool HeaterTemperatureController_start(void);
 bool HeaterTemperatureController_stop(void);
 
-void HeaterTemperatureController_registerNewControllerDataCallback(void (*callback)(SControllerData*));
-void HeaterTemperatureController_deregisterNewControllerDataCallback(void);
+bool HeaterTemperatureController_registerNewControllerDataCallback(void (*callback)(EControllerDataType, float), u16 period);
+bool HeaterTemperatureController_deregisterNewControllerDataCallback(void);
 
 #endif

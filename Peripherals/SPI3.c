@@ -127,6 +127,8 @@ void SPI3_block(ESpi3ClkPolarity clkPolarity)
             mIsInitialized = false;
             assert_param(false);
         }
+        
+        mClkPolarity = clkPolarity;
     }
 }
 

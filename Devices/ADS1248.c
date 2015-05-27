@@ -39,6 +39,7 @@ typedef struct _SChannelData
 } ChannelData;
 
 static bool mIsInitialized = false;
+static bool mIsReadingStarted = false;
 static EThreadId mObserverThreadId = EThreadId_Unknown;
 static double mGainValue = 0.0;
 static EADS1248GainValue mGain = EADS1248GainValue_1;
@@ -109,7 +110,7 @@ EVENT_HANDLER(CallibrationDoneInd)
     {
         EXTI_unsetCallback(GET_GPIO_PIN(ADS1248_DRDY_PIN));
         
-        Logger_debug("%s: Callibration %s done.", getLoggerPrefix(), CStringConverter_EADS1248CallibrationType(mActiveCallibration));
+        Logger_info("%s: Callibration %s done.", getLoggerPrefix(), CStringConverter_EADS1248CallibrationType(mActiveCallibration));
         bool result = true;
         
         result = sendCommand(ADS1248_COMMAND_SDATAC);
@@ -293,6 +294,14 @@ bool ADS1248_stopReading(void)
     return result;
 }
 
+bool ADS1248_isReadingStarted(void)
+{
+    osMutexWait(mMutexId, osWaitForever);
+    bool result = mIsReadingStarted;
+    osMutexRelease(mMutexId);
+    return result;
+}
+
 bool ADS1248_getThermocoupleVoltageValue(EUnitId thermocouple, double* value)
 {
     osMutexWait(mMutexId, osWaitForever);
@@ -313,7 +322,7 @@ bool ADS1248_setChannelGain(EADS1248GainValue gainValue)
     
     if (result)
     {
-        Logger_debug("%s: Set new channels PGA / gain value: %s with success.", getLoggerPrefix(), CStringConverter_EADS1248GainValue(gainValue));
+        Logger_info("%s: Set new channels PGA / gain value: %s with success.", getLoggerPrefix(), CStringConverter_EADS1248GainValue(gainValue));
         mGainValue = gain;
         mGain = gainValue;
     }
@@ -339,7 +348,7 @@ bool ADS1248_setChannelSamplingSpeed(EADS1248SamplingSpeed samplingSpeed)
     
     if (result)
     {
-        Logger_debug("%s: Set new channels sampling speed: %s with success.", getLoggerPrefix(), CStringConverter_EADS1248SamplingSpeed(samplingSpeed));
+        Logger_info("%s: Set new channels sampling speed: %s with success.", getLoggerPrefix(), CStringConverter_EADS1248SamplingSpeed(samplingSpeed));
         mSamplingSpeed = samplingSpeed;
     }
     else
@@ -686,16 +695,15 @@ EUnitId getNextThermocouple(void)
     static ThermocouplesPair thermocouplesPairs [USED_CHANNELS_COUNT] =
         {
             { EUnitId_ThermocoupleReference, EUnitId_Thermocouple1 },
-            { EUnitId_Thermocouple1, EUnitId_ThermocoupleReference }
-            /*
+            /*{ EUnitId_Thermocouple1, EUnitId_ThermocoupleReference }*/
             { EUnitId_Thermocouple1, EUnitId_Thermocouple2 },
             { EUnitId_Thermocouple2, EUnitId_Thermocouple3 },
             { EUnitId_Thermocouple3, EUnitId_Thermocouple4 },
-            { EUnitId_Thermocouple4, EUnitId_ThermocoupleReference }*/
+            { EUnitId_Thermocouple4, EUnitId_ThermocoupleReference }
         };
         
-    //for (u8 iter = 0; USED_CHANNELS_COUNT > iter; ++iter)
-    for (u8 iter = 0; 2 > iter; ++iter)
+    for (u8 iter = 0; USED_CHANNELS_COUNT > iter; ++iter)
+    //for (u8 iter = 0; 2 > iter; ++iter)
     {
         if (mActiveThermocouple == thermocouplesPairs[iter].first)
         {
@@ -1127,7 +1135,7 @@ bool startCallibration(EADS1248CallibrationType callibrationType, void (*callibr
         TByte mux1RegisterContent = getMux1RegisterContent(callibrationType);
         if (writeDataToRegisterAndValidateIt(ADS1248_REGISTER_MUX1, mux1RegisterContent) && sendCommand(getCallibrationCommmand(callibrationType)))
         {
-            Logger_debug("%s: Callibration %s started.", getLoggerPrefix(), CStringConverter_EADS1248CallibrationType(mActiveCallibration));
+            Logger_info("%s: Callibration %s started.", getLoggerPrefix(), CStringConverter_EADS1248CallibrationType(mActiveCallibration));
         }
         else
         {
@@ -1169,6 +1177,7 @@ bool startReading(void)
     
     if (result)
     {
+        mIsReadingStarted = true;
         Logger_debug("%s: Starting reading ADC data from thermocouples.", getLoggerPrefix());
     }
     else
@@ -1186,6 +1195,7 @@ bool stopReading(void)
     bool result = sendCommand(ADS1248_COMMAND_SDATAC);
     if (result)
     {
+        mIsReadingStarted = false;
         Logger_debug("%s: Data reading stopped.", getLoggerPrefix());
         return true;
     }

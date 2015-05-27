@@ -9,6 +9,11 @@
 #include "System/EventManagement/EEventId.h"
 #include "Utilities/CopyObject.h"
 
+#include "Utilities/Logger/Logger.h"
+#include "Utilities/Printer/CStringConverter.h"
+#include "Peripherals/LED.h"
+#include "FaultManagement/FaultIndication.h"
+
 #include "cmsis_os.h"
 
 THREAD_DEFINES(MasterDataReceiver, MasterDataReceiver)
@@ -41,7 +46,12 @@ EVENT_HANDLER(DataFromMasterReceivedInd)
     {
         case EMessagePart_Header :
         {
-            mReceivingMessagePart = EMessagePart_Data;
+            {
+                for (u8 iter = 0; 8 > iter; ++iter)
+                {
+                    Logger_debugSystemMasterDataExtended("%s: Header byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mMessageHeader[iter]);
+                }
+            }
             
             {
                 if (! ( ('M' == mMessageHeader[0]) && ('S' == mMessageHeader[1]) && ('G' == mMessageHeader[2]) ) )
@@ -55,13 +65,28 @@ EVENT_HANDLER(DataFromMasterReceivedInd)
                 mActiveMessage.transactionId = mMessageHeader[4];
                 mActiveMessage.crc = ( mMessageHeader[5] | ( ( ( (u16) ( mMessageHeader[6] )) << 8 ) & 0xFF00 ) );
                 mActiveMessage.length = mMessageHeader[7];
-                    
+                 
+                Logger_debugSystem("%s: Receiving %s message from Master device.", getLoggerPrefix(), CStringConverter_EMessageId(mActiveMessage.id));
+
                 mActiveMessage.data = (TByte*) ( MasterDataMemoryManager_allocate(mActiveMessage.id) );
+
+                if (NULL == mActiveMessage.data)
+                {
+                    Logger_error("%s: Allocating memory for message %s failed. System failure!", getLoggerPrefix(), CStringConverter_EMessageId(mActiveMessage.id));
+                    FaultIndication_start(EFaultId_NoMemory, EUnitId_Nucleo, EUnitId_Empty);
+                    mIsMessageCorrupted = true;
+                }
             }
             
-            if (!UART1_receive(mActiveMessage.data, mActiveMessage.length))
+            if (!mIsMessageCorrupted)
             {
-                assert_param(0);
+                if (!UART1_receive(mActiveMessage.data, mActiveMessage.length))
+                {
+                    assert_param(0);
+                }
+                
+                mReceivingMessagePart = EMessagePart_Data;
+                Logger_debugSystemMasterDataExtended("%s: Message part awaiting: %u.", getLoggerPrefix(), mReceivingMessagePart);
             }
             
             break;
@@ -70,22 +95,42 @@ EVENT_HANDLER(DataFromMasterReceivedInd)
         case EMessagePart_Data :
         {
             mReceivingMessagePart = EMessagePart_End;
-            
-            if (!UART1_receive(mMessageEnd, 3))
+            /*
+            if (UART1_receive(mMessageEnd, 4))
+            {
+                Logger_debugSystemMasterDataExtended("%s: Waiting for message END.", getLoggerPrefix());
+                Logger_debugSystemMasterDataExtended("%s: Message part awaiting: %u.", getLoggerPrefix(), mReceivingMessagePart);
+            }
+            else
             {
                 assert_param(0);
             }
+            */
+            {
+                for (u8 iter = 0; mActiveMessage.length > iter; ++iter)
+                {
+                    Logger_debugSystemMasterDataExtended("%s: Data byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mActiveMessage.data[iter]);
+                }
+            }
             
-            break;
+            //break;
         }
         
         case EMessagePart_End :
         {
             mReceivingMessagePart = EMessagePart_Header;
+            Logger_debugSystemMasterDataExtended("%s: Message part awaiting: %u.", getLoggerPrefix(), mReceivingMessagePart);
             
             if (!UART1_receive(mMessageHeader, 8))
             {
                 assert_param(0);
+            }
+            /*
+            {
+                for (u8 iter = 0; 4 > iter; ++iter)
+                {
+                    Logger_debugSystemMasterDataExtended("%s: End byte[%u]: 0x%02X.", getLoggerPrefix(), iter, mMessageEnd[iter]);
+                }
             }
             
             {
@@ -93,17 +138,25 @@ EVENT_HANDLER(DataFromMasterReceivedInd)
                 {
                     mIsMessageCorrupted = true;
                 }
-            }
+            }*/
             
             if (!mIsMessageCorrupted)
             {
                 MasterUartGateway_handleReceivedMessage(mActiveMessage);
+            }
+            else
+            {
+                Logger_error("%s: Message %s is corrupted and will be skipped.", getLoggerPrefix(), CStringConverter_EMessageId(mActiveMessage.id));
+                MasterDataMemoryManager_free(mActiveMessage.id, mActiveMessage.data);
             }
             
             mIsMessageCorrupted = false;
             
             break;
         }
+        
+        default :
+            break;
     }
 }
 
@@ -113,6 +166,7 @@ EVENT_HANDLER(StartReceivingData)
     
     mIsMessageCorrupted = false;
     mReceivingMessagePart = EMessagePart_Header;
+    Logger_debugSystemMasterDataExtended("%s: Message part awaiting: %u.", getLoggerPrefix(), mReceivingMessagePart);
     if (!UART1_receive(mMessageHeader, 8))
     {
         Logger_error("%s: Starting receiving data from Master failed! UART failure.", getLoggerPrefix());
@@ -137,6 +191,8 @@ void MasterDataReceiver_initialize(void)
 
 void dataReceivedCallback(void)
 {
+    static u8 iter = 0;
+    Logger_debugSystem("%s: Data received callback. Iteration: %u.", getLoggerPrefix(), ++iter);
     CREATE_EVENT_ISR(DataFromMasterReceivedInd, mThreadId);
     SEND_EVENT();
 }
