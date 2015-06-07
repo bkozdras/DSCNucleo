@@ -219,6 +219,9 @@ const char* CStringConverter_EFaultId(EFaultId faultId)
         
         case EFaultId_OverCurrent :
             return "OverCurrent";
+        
+        case EFaultId_TemperatureTooHigh :
+            return "TemperatureTooHigh";
     }
     
     return "Unknown EFaultId";
@@ -286,6 +289,9 @@ const char* CStringConverter_EUnitId(EUnitId unitId)
 
         case EUnitId_Peltier :
             return "Peltier";
+        
+        case EUnitId_Heater :
+            return "Heater";
         
         case EUnitId_Empty :
             return "Empty";
@@ -689,7 +695,7 @@ const char* CStringConverter_EPid(EPid pid)
             return "Model Controller";
         
         case EPid_ProcessController :
-            return "Process Controler";
+            return "Process Controller";
     }
     
     return "Unknown EPid";

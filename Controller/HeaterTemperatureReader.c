@@ -4,6 +4,7 @@
 
 #include "Devices/LMP90100ControlSystem.h"
 
+#include "FaultManagement/FaultIndication.h"
 #include "System/ThreadMacros.h"
 
 #include "Utilities/Logger/Logger.h"
@@ -16,8 +17,14 @@ EVENT_HANDLER_PROTOTYPE(NewRTDValueInd)
 
 static float mTemperature = 0.0F;
 static void (*mNewTemperatureValueCallback)(float) = NULL;
+static u16 mIndCallbackPeriod = 0U;
+static osTimerId mIndCallbackTimerId = NULL;
+static bool mIsTimerStarted = false;
 
 static float convertRTDResistanceToTemperature(float sensorData);
+static void indCallback(const void* arg);
+static bool startIndCallbackTimer(void);
+static bool stopIndCallbackTimer(void);
 
 THREAD(HeaterTemperatureReader)
 {
@@ -35,16 +42,14 @@ EVENT_HANDLER(NewRTDValueInd)
     Logger_debug("%s: New RTD value received! Value: %.4f Ohm.", getLoggerPrefix(), event->value);
     mTemperature = convertRTDResistanceToTemperature(event->value);
     Logger_debug("%s: Temperature: %f oC.", getLoggerPrefix(), mTemperature);
-    
-    if (mNewTemperatureValueCallback)
-    {
-        (*mNewTemperatureValueCallback)(mTemperature);
-    }
 }
 
 void HeaterTemperatureReader_setup(void)
 {
     THREAD_INITIALIZE_MUTEX
+    
+    osTimerDef(indCallbackTimer, indCallback);
+    mIndCallbackTimerId = osTimerCreate(osTimer(indCallbackTimer), osTimerPeriodic, NULL);
 }
 
 void HeaterTemperatureReader_initialize(void)
@@ -65,20 +70,40 @@ float HeaterTemperatureReader_getTemperature(void)
     return temperature;
 }
 
-void HeaterTemperatureReader_registerNewTemperatureValueCallback(void (*newTemperatureValueCallback)(float))
+bool HeaterTemperatureReader_registerNewTemperatureValueCallback(void (*newTemperatureValueCallback)(float), u16 period)
 {
     osMutexWait(mMutexId, osWaitForever);
     mNewTemperatureValueCallback = newTemperatureValueCallback;
+    mIndCallbackPeriod = period;
+    
+    bool result = true;
+    
+    if (!mIsTimerStarted)
+    {
+        result = startIndCallbackTimer();
+    }
+    
     osMutexRelease(mMutexId);
     Logger_debug("%s: Registered callback for new RTD temperature value.", getLoggerPrefix());
+    
+    return result;
 }
 
-void HeaterTemperatureReader_deregisterNewTemperatureValueCallback(void)
+bool HeaterTemperatureReader_deregisterNewTemperatureValueCallback(void)
 {
     osMutexWait(mMutexId, osWaitForever);
     mNewTemperatureValueCallback = NULL;
+    
+    bool result = true;
+    if (mIsTimerStarted)
+    {
+        result = stopIndCallbackTimer();
+    }
+    
     osMutexRelease(mMutexId);
     Logger_debug("%s: Deregistered callback for new RTD temperature value.", getLoggerPrefix());
+    
+    return result;
 }
 
 float convertRTDResistanceToTemperature(float resistance)
@@ -117,4 +142,60 @@ float convertRTDResistanceToTemperature(float resistance)
     float sqrtVal = 0.0F;
     arm_sqrt_f32(z2 + z3 * resistance, &sqrtVal);
     return ( (z1 + sqrtVal) / (z4) );
+}
+
+void indCallback(const void* arg)
+{
+    osMutexWait(mMutexId, osWaitForever);
+    
+    if (mNewTemperatureValueCallback)
+    {
+        (*mNewTemperatureValueCallback)(mTemperature);
+    }
+    
+    osMutexRelease(mMutexId);
+}
+
+bool startIndCallbackTimer(void)
+{
+    if (!mIsTimerStarted)
+    {
+        osStatus osResult = osTimerStart(mIndCallbackTimerId, mIndCallbackPeriod);
+        if (osOK != osResult)
+        {
+            Logger_error("%s: Forcing callback calling state to ENABLED failed.", getLoggerPrefix());
+            Logger_error("%s: RTOS failure: %s.", getLoggerPrefix(), CStringConverter_osStatus(osResult));
+            FaultIndication_start(EFaultId_System, EUnitId_Nucleo, EUnitId_Empty);
+            return false;
+        }
+        else
+        {
+            mIsTimerStarted = true;
+            return true;
+        }
+    }
+    
+    return true;
+}
+
+bool stopIndCallbackTimer(void)
+{
+    if (mIsTimerStarted)
+    {
+        osStatus osResult = osTimerStop(mIndCallbackTimerId);
+        if (osOK != osResult)
+        {
+            Logger_error("%s: Forcing callback calling state to ENABLED failed.", getLoggerPrefix());
+            Logger_error("%s: RTOS failure: %s.", getLoggerPrefix(), CStringConverter_osStatus(osResult));
+            FaultIndication_start(EFaultId_System, EUnitId_Nucleo, EUnitId_Empty);
+            return false;
+        }
+        else
+        {
+            mIsTimerStarted = false;
+            return true;
+        }
+    }
+    
+    return true;
 }

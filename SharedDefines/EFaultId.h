@@ -13,7 +13,8 @@ typedef enum _EFaultId
     EFaultId_Communication      = 7,
     EFaultId_WrongData          = 8,
     EFaultId_CRCFailure         = 9,
-    EFaultId_OverCurrent        = 10
+    EFaultId_OverCurrent        = 10,
+    EFaultId_TemperatureTooHigh = 11
 } EFaultId;
 
 #endif

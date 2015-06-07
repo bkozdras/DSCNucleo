@@ -37,8 +37,8 @@ static u16 mNumberOfRegisteredSegments = 0;
 static u16 mNumberOfRealizedSegments = 0;
 static SLocalSegmentData* mFirstSegmentInChain = NULL;
 static SLocalSegmentData* mLastSegmentInChain = NULL;
-static void (*mNewSegmentStartedIndCallback)(u16) = NULL;
-static void (*mSegmentsProgramDoneIndCallback)(u16, u16) = NULL;
+static void (*mNewSegmentStartedIndCallback)(u8, u8) = NULL;
+static void (*mSegmentsProgramDoneIndCallback)(u8, u8) = NULL;
 static bool mIsProgramRunning = false;
 static bool mIsSegmentWaitingForFinishing = false;
 static float mActualSetTemperature = 0.0F;
@@ -136,7 +136,7 @@ bool SegmentsManager_registerNewSegment(SSegmentData* data)
     else if (NULL != getRegisteredSegment(segmentNumber))
     {
         result = false;
-        Logger_error("%s: Registering new segment (%u) is not possible. Requested segment is exist in program.", getLoggerPrefix(), segmentNumber);
+        Logger_error("%s: Registering new segment (%u) is not possible. Requested segment exists in program.", getLoggerPrefix(), segmentNumber);
     }
     else
     {
@@ -165,14 +165,16 @@ bool SegmentsManager_registerNewSegment(SSegmentData* data)
         CopyObject_SSegmentData(data, &(mLastSegmentInChain->data));
         ++mNumberOfRegisteredSegments;
         
-        Logger_info
-        (
-            "%s: Segment %u registered (Start temp.: %.2f oC, Stop temp. %.2f oC).",
-            getLoggerPrefix(),
-            mLastSegmentInChain->data.number,
-            mLastSegmentInChain->data.startTemperature,
-            mLastSegmentInChain->data.stopTemperature
-        );
+        Logger_info("%s: Segment %u registered (%s). Applied configuration:", getLoggerPrefix(), mLastSegmentInChain->data.number, CStringConverter_ESegmentType(mLastSegmentInChain->data.type));
+        if (ESegmentType_Static == mLastSegmentInChain->data.type)
+        {
+            Logger_info("%s: Temperature: %.2f oC. Time duration: %u ms.", getLoggerPrefix(), mLastSegmentInChain->data.startTemperature, mLastSegmentInChain->data.settingTimeInterval);
+        }
+        else
+        {
+            Logger_info("%s: Start Temperature: %.2f oC. Stop Temperature: %.2f oC.", getLoggerPrefix(), mLastSegmentInChain->data.startTemperature, mLastSegmentInChain->data.stopTemperature);
+            Logger_info("%s: Temperature Step: %.5f and changing time interval: %u ms.", getLoggerPrefix(), mLastSegmentInChain->data.temperatureStep, mLastSegmentInChain->data.settingTimeInterval);
+        }
     }
     
     osMutexRelease(mMutexId);
@@ -232,7 +234,7 @@ u16 SegmentsManager_getNumberOfRegisteredSegments(void)
     return numberOfRegisteredSegments;
 }
 
-void SegmentsManager_registerSegmentStartedIndCallback(void (*callback)(u16))
+void SegmentsManager_registerSegmentStartedIndCallback(void (*callback)(u8, u8))
 {
     osMutexWait(mMutexId, osWaitForever);
     
@@ -252,7 +254,7 @@ void SegmentsManager_deregisterSegmentStartedIndCallback(void)
     osMutexRelease(mMutexId);
 }
 
-void SegmentsManager_registerSegmentsProgramDoneIndCallback(void (*callback)(u16, u16))
+void SegmentsManager_registerSegmentsProgramDoneIndCallback(void (*callback)(u8, u8))
 {
     osMutexWait(mMutexId, osWaitForever);
     
@@ -315,7 +317,7 @@ void dynamicSegmentProgramExecutor(void const* arg)
 {
     osMutexWait(mMutexId, osWaitForever);
     
-    static bool isFirstEnteringInSegment = false;
+    static bool isFirstEnteringInSegment = true;
     
     if (isFirstEnteringInSegment)
     {
@@ -324,9 +326,17 @@ void dynamicSegmentProgramExecutor(void const* arg)
     }
     else if (mIsSegmentWaitingForFinishing)
     {
+        static bool isDerivativeElementDisabled = true;
         if (isTemperatureReachedRequestedValue())
         {
             segmentDoneActionExecutor();
+            isFirstEnteringInSegment = true;
+            isDerivativeElementDisabled = true;
+        }
+        else if (isDerivativeElementDisabled)
+        {
+            HeaterTemperatureController_enableDerivativeElement(EPid_ProcessController);
+            isDerivativeElementDisabled = false;
         }
     }
     else if (isSetTemperatureLastInSegment())
@@ -334,7 +344,7 @@ void dynamicSegmentProgramExecutor(void const* arg)
         Logger_info("%s: Temperature is set to last in segment. Waiting for finishing segment...", getLoggerPrefix());
         mIsSegmentWaitingForFinishing = true;
     }
-    else if (!isTemperatureDeviationTooBig())
+    else// if (!isTemperatureDeviationTooBig())
     {
         dynamicSegmentSetter();
     }
@@ -395,7 +405,7 @@ void dynamicSegmentSetter(void)
 
 bool isTemperatureDeviationTooBig(void)
 {
-    if (5.0F < HeaterTemperatureController_getControllerError())
+    if (3.0F < HeaterTemperatureController_getControllerError())
     {
         return true;
     }
@@ -410,7 +420,7 @@ bool isTemperatureReachedRequestedValue(void)
     // TODO: If needed, added in the future few steps to be sure if temperature is proper
     // Example: Counter - if all tests passed temperature reached proper value
     float controllerError = HeaterTemperatureController_getControllerError();
-    if ( (0.15F > controllerError) && (-0.15F < controllerError) )
+    if ( (3.00F > controllerError) && (-3.00F < controllerError) )
     {
         return true;
     }
@@ -422,7 +432,7 @@ bool isTemperatureReachedRequestedValue(void)
 
 bool isSetTemperatureLastInSegment(void)
 {
-    return ( mActualSetTemperature == mFirstSegmentInChain->data.stopTemperature );
+    return ( mActualSetTemperature >= mFirstSegmentInChain->data.stopTemperature );
 }
 
 void segmentStartedActionExecutor(void)
@@ -434,7 +444,7 @@ void segmentStartedActionExecutor(void)
     mIsSegmentWaitingForFinishing = false;
     Logger_info
     (
-        "%s: %s segment started. Temperature: &.2f oC. Time interval: %u ms.",
+        "%s: %s segment started. Temperature: %.2f oC. Time interval: %u ms.",
         getLoggerPrefix(),
         CStringConverter_ESegmentType(mFirstSegmentInChain->data.type),
         mFirstSegmentInChain->data.startTemperature,
@@ -493,20 +503,25 @@ void segmentDoneActionExecutor(void)
                 FaultIndication_start(EFaultId_System, EUnitId_Nucleo, EUnitId_Empty);
                 return;
             }
+            
+            HeaterTemperatureController_disableDerivativeElement(EPid_ProcessController);
         }
         else
         {
+            HeaterTemperatureController_enableDerivativeElement(EPid_ProcessController);
             CREATE_EVENT_ISR(StartStaticSegment, mThreadId);
             SEND_EVENT();
         }
         
-        HeaterTemperatureController_setSystemType(EControlSystemType_OpenLoop);
+        //HeaterTemperatureController_setSystemType(EControlSystemType_OpenLoop);
     }
     else
     {
         Logger_info("%s: All segments executed. Program is finished!", getLoggerPrefix());
         mIsProgramRunning = false;
         sendProgramDoneInd();
+        HeaterTemperatureController_setSystemType(EControlSystemType_OpenLoop);
+        HeaterTemperatureController_setPowerInPercent(0.0F);
     }
     
 }
@@ -515,7 +530,7 @@ void sendSegmentStartedInd(void)
 {
     if (mNewSegmentStartedIndCallback)
     {
-        (*mNewSegmentStartedIndCallback)(mFirstSegmentInChain->data.number);
+        (*mNewSegmentStartedIndCallback)(mFirstSegmentInChain->data.number, mNumberOfRegisteredSegments);
     }
 }
 
@@ -555,6 +570,8 @@ SLocalSegmentData* getPreviousSegment(SLocalSegmentData* segment)
 
 bool startProgram(void)
 {
+    Logger_info("%s: Starting segments program.", getLoggerPrefix());
+    
     if (NULL == mFirstSegmentInChain)
     {
         Logger_warning("%s: No registered segments! Program not started...", getLoggerPrefix());
@@ -567,6 +584,25 @@ bool startProgram(void)
     }
     else
     {
+        {
+            Logger_info("%s: Number of registered segments: %u.", getLoggerPrefix(), mNumberOfRegisteredSegments);
+            SLocalSegmentData* iter = mFirstSegmentInChain;
+            do
+            {
+                Logger_info("%s: Segment %u.", getLoggerPrefix(), iter->data.number, CStringConverter_ESegmentType(iter->data.type));
+                if (ESegmentType_Static == mLastSegmentInChain->data.type)
+                {
+                    Logger_info("%s: Temperature: %.2f oC. Time duration: %u ms.", getLoggerPrefix(), iter->data.startTemperature, iter->data.settingTimeInterval);
+                }
+                else
+                {
+                    Logger_info("%s: Start Temperature: %.2f oC. Stop Temperature: %.2f oC.", getLoggerPrefix(), iter->data.startTemperature, iter->data.stopTemperature);
+                    Logger_info("%s: Temperature Step: %.5f and changing time interval: %u ms.", getLoggerPrefix(), iter->data.temperatureStep, iter->data.settingTimeInterval);
+                }
+                iter = iter->nextSegmentInChain;
+            } while(iter != NULL);
+        }
+        
         mIsProgramRunning = true;
         HeaterTemperatureController_setSystemType(EControlSystemType_SimpleFeedback);
         if (!HeaterTemperatureController_start())
@@ -574,7 +610,8 @@ bool startProgram(void)
             Logger_error("%s: Failure during starting heater temperature controller. Segments program not started.", getLoggerPrefix());
             return false;
         }
-        Logger_info("%s: Starting segment program. Number of registered segments: %u.", mNumberOfRegisteredSegments);
+        HeaterTemperatureController_resetPidStates(EPid_ProcessController);
+
         if (ESegmentType_Dynamic == mFirstSegmentInChain->data.type)
         {
             Logger_info("%s: First segment is dynamic.", getLoggerPrefix());
@@ -586,10 +623,13 @@ bool startProgram(void)
                 FaultIndication_start(EFaultId_System, EUnitId_Nucleo, EUnitId_Empty);
                 return false;
             }
+            
+            HeaterTemperatureController_disableDerivativeElement(EPid_ProcessController);
         }
         else
         {
-            Logger_info("%s: Fist segment is static.", getLoggerPrefix());
+            Logger_info("%s: First segment is static.", getLoggerPrefix());
+            HeaterTemperatureController_enableDerivativeElement(EPid_ProcessController);
             CREATE_EVENT_ISR(StartStaticSegment, mThreadId);
             SEND_EVENT();
         }

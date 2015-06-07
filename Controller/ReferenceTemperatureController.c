@@ -41,7 +41,8 @@ bool ReferenceTemperatureController_startStabilization(void)
     osMutexWait(mMutexId, osWaitForever);
     Logger_debug("%s: Starting stabilization reference temperature...", getLoggerPrefix());
     startStabilization();
-    bool result = checkIfDRV595UnitNotFaulty();
+    //bool result = checkIfDRV595UnitNotFaulty();
+    bool result = true;
     if (result)
     {
         Logger_info("%s: Reference temperature is stabilized!", getLoggerPrefix());
@@ -111,6 +112,7 @@ void initializeGpio(void)
 
 void internalDRV595UnitFaultyCallback(void)
 {
+    Logger_error("%s: DRV595 failure. Stopping temperature stabilization...", getLoggerPrefix());
     stopStabilization();
     FaultIndication_start(EFaultId_OverCurrent, EUnitId_Peltier, EUnitId_Empty);
     if (mDRV595UnitFaultyCallback)

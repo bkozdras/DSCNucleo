@@ -5,8 +5,9 @@
 typedef struct _SPidTunes
 {
     double kp;
-    double ti;
-    double td;
+    double ki;
+    double kd;
+    double n;
 } SPidTunes;
 
 #endif

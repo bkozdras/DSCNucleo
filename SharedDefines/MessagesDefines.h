@@ -78,12 +78,12 @@ typedef struct _TControllerDataInd
 
 typedef struct _TSetHeaterPowerRequest
 {
-    u16 power;
+    float power;
 } TSetHeaterPowerRequest;
 
 typedef struct _TSetHeaterPowerResponse
 {
-    u16 power;
+    float power;
     bool success;
 } TSetHeaterPowerResponse;
 
@@ -228,8 +228,7 @@ typedef struct _TRegisterNewSegmentToProgramRequest
 
 typedef struct _TRegisterNewSegmentToProgramResponse
 {
-    u16 segmentNumber;
-    u16 numberOfRegisteredSegments;
+    u8 segmentNumber;
     bool success;
 } TRegisterNewSegmentToProgramResponse;
 
@@ -267,14 +266,14 @@ typedef struct _TStopSegmentProgramResponse
 
 typedef struct _TSegmentStartedInd
 {
-    u16 segmentNumber;
-    u16 leftRegisteredSegments;
+    u8 segmentNumber;
+    u8 leftRegisteredSegments;
 } TSegmentStartedInd;
 
 typedef struct _TSegmentsProgramDoneInd
 {
-    u16 realizedSegmentsCount;
-    u16 numberOfLastDoneSegment;
+    u8 realizedSegmentsCount;
+    u8 numberOfLastDoneSegment;
 } TSegmentsProgramDoneInd;
 
 typedef struct _TStartReferenceTemperatureStabilizationRequest

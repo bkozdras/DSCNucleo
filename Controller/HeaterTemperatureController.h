@@ -18,8 +18,12 @@ bool HeaterTemperatureController_setAlgorithmExecutionPeriod(u16 period);
 bool HeaterTemperatureController_setProcessModelParameters(SProcessModelParameters* parameters);
 bool HeaterTemperatureController_setSystemType(EControlSystemType type);
 bool HeaterTemperatureController_setTunes(EPid pid, SPidTunes* tunes);
+void HeaterTemperatureController_resetPidStates(EPid pid);
+void HeaterTemperatureController_enableDerivativeElement(EPid pid);
+void HeaterTemperatureController_disableDerivativeElement(EPid pid);
 
 bool HeaterTemperatureController_setPower(u16 power);
+bool HeaterTemperatureController_setPowerInPercent(float power);
 bool HeaterTemperatureController_setTemperature(float temperature);
 
 float HeaterTemperatureController_getControllerError(void);

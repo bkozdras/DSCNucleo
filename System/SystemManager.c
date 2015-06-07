@@ -135,7 +135,7 @@ void SystemManager_thread(void const* arg)
     checkKernelStatus();
     
     Logger_info("%s: Started configuring device!", getLoggerPrefix());
-    Logger_error("%s: MESSAGE LENGTH: %u.", getLoggerPrefix(), MasterDataMemoryManager_getLength(EMessageId_SampleCarrierDataInd));
+
     bool result = true;
     
     conditionalExecutor(configurePeripheralsPhaseOne, &result);

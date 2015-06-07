@@ -32,8 +32,9 @@ void CopyObject_SSampleCarrierData(SSampleCarrierData* source, SSampleCarrierDat
 void CopyObject_SPidTunes(SPidTunes* source, SPidTunes* dest)
 {
     dest->kp = source->kp;
-    dest->td = source->td;
-    dest->ti = source->ti;
+    dest->kd = source->kd;
+    dest->ki = source->ki;
+    dest->n = source->n;
 }
 
 void CopyObject_SControllerData(SControllerData* source, SControllerData* dest)
@@ -50,5 +51,6 @@ void CopyObject_SSegmentData(SSegmentData* source, SSegmentData* dest)
     dest->settingTimeInterval = source->settingTimeInterval;
     dest->startTemperature = source->startTemperature;
     dest->stopTemperature = source->stopTemperature;
+    dest->temperatureStep = source->temperatureStep;
     dest->type = source->type;
 }

@@ -17,9 +17,9 @@ bool SegmentsManager_registerNewSegment(SSegmentData* data);
 bool SegmentsManager_deregisterSegment(u16 number);
 u16 SegmentsManager_getNumberOfRegisteredSegments(void);
 
-void SegmentsManager_registerSegmentStartedIndCallback(void (*callback)(u16));
+void SegmentsManager_registerSegmentStartedIndCallback(void (*callback)(u8, u8));
 void SegmentsManager_deregisterSegmentStartedIndCallback(void);
-void SegmentsManager_registerSegmentsProgramDoneIndCallback(void (*callback)(u16, u16));
+void SegmentsManager_registerSegmentsProgramDoneIndCallback(void (*callback)(u8, u8));
 void SegmentsManager_deregisterSegmentsProgramDoneIndCallback(void);
 
 bool SegmentsManager_startProgram(void);
